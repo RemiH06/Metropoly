@@ -6,6 +6,8 @@ def get_colors():
     
     colors = {
         "basicBG": soup.find('style').string.split("--basicBG:")[1].split(";")[0].strip(),
+        "yellowBG": soup.find('style').string.split("--yellowBG:")[1].split(";")[0].strip(),
+        "redBG": soup.find('style').string.split("--redBG:")[1].split(";")[0].strip(),
         "borderBlack": soup.find('style').string.split("--borderBlack:")[1].split(";")[0].strip(),
         "red": soup.find('style').string.split("--red:")[1].split(";")[0].strip(),
         "orange": soup.find('style').string.split("--orange:")[1].split(";")[0].strip(),

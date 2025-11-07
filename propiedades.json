@@ -1,29 +1,32 @@
 [
     {
         "nombre": "El Colli",
-        "color": "brown",
-        "carril": "rojo",
+        "color": "blue",
+        "carril": 1,
         "imagen": "caseta.png",
         "precio": 0.5,
         "renta_base": 100,
-        "tipo": "Propiedad"
+        "tipo": 1,
+        "posicion": 1
     },
     {
-        "nombre": "Mediterranean Avenue",
-        "color": "blue",
-        "carril": "azul",
-        "imagen": "hospital.png",
-        "precio": 100,
-        "renta_base": 15,
-        "tipo": "empresa"
-    },
-    {
-        "nombre": "Boardwalk",
+        "nombre": "El Colli 2",
         "color": "green",
-        "carril": "amarillo",
-        "imagen": "luz.png",
-        "precio": 400,
-        "renta_base": 50,
-        "tipo": "empresa"
+        "carril": 2,
+        "imagen": "caseta.png",
+        "precio": 0.5,
+        "renta_base": 100,
+        "tipo": 2,
+        "posicion": 1
+    },
+    {
+        "nombre": "El Colli 3",
+        "color": "red",
+        "carril": 3,
+        "imagen": "caseta.png",
+        "precio": 0.5,
+        "renta_base": 100,
+        "tipo": 3,
+        "posicion": 2
     }
 ]
