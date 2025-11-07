@@ -12,45 +12,69 @@ class Propiedad:
         self.renta_base = renta_base
         self.tipo = tipo
 
-# Función recursiva para generar las tarjetas de propiedades
-def generar_tarjeta(propiedades, i=0):
-    if i >= len(propiedades):
-        return  # Condición de salida de la recursión
-    
-    propiedad = propiedades[i]
+# Función para generar la casilla de propiedad (tablero)
+def generar_casilla(propiedad):
     colors = get_colors()
-    
-    # Usamos el color de la propiedad (por ejemplo, rojo) y lo extraemos de la paleta
-    color_fondo = colors[propiedad.color]  # Propiedad que viene del color en la paleta
-    
-    # Crear el SVG de la tarjeta
-    dwg = svgwrite.Drawing(f'repo/{propiedad.nombre}_tarjeta.svg', profile='tiny', size=("200px", "350px"))
-    
-    # Fondo de la tarjeta
-    dwg.add(dwg.rect(insert=(0, 0), size=("200px", "350px"), fill=color_fondo, stroke="black", stroke_width=2))
-    
-    # Título de la propiedad
-    dwg.add(dwg.text(propiedad.nombre, insert=(10, 30), font_size="16px", fill="white"))
-    
-    # Imagen de la propiedad (esto puede ser una referencia o un rectángulo como marcador)
-    dwg.add(dwg.image(propiedad.imagen, insert=(10, 50), size=(180, 100)))
-    
-    # Precio y renta base
-    dwg.add(dwg.text(f"Precio: {propiedad.precio}K", insert=(10, 170), font_size="12px", fill="white"))
-    dwg.add(dwg.text(f"Renta base: {propiedad.renta_base}K", insert=(10, 190), font_size="12px", fill="white"))
-    
-    # Guardar el SVG
+    color_fondo = colors["basicBG"]
+    border_color = colors["borderBlack"]
+    top_color = colors[propiedad.color]  # Usamos el color de la propiedad
+
+    dwg = svgwrite.Drawing(f'repo/casillas/casilla_{propiedad.nombre}.svg', profile='tiny', size=("150px", "150px"))
+
+    # Fondo de la casilla
+    dwg.add(dwg.rect(insert=(0, 0), size=("150px", "150px"), fill=color_fondo, stroke=border_color, stroke_width=4))
+
+    # Color superior
+    dwg.add(dwg.rect(insert=(0, 0), size=("150px", "30px"), fill=top_color))
+
+    # Nombre de la propiedad (centrado en la casilla)
+    dwg.add(dwg.text(propiedad.nombre.upper(), insert=("75px", "20px"), font_size="12px", font_family="Arial Black", fill="white", text_anchor="middle"))
+
+    # Precio en la parte inferior
+    dwg.add(dwg.text(f"M{propiedad.precio}", insert=("75px", "130px"), font_size="14px", font_family="Arial", fill="black", text_anchor="middle"))
+
+    # Guardar la casilla
     dwg.save()
-    
-    # Llamada recursiva para la siguiente propiedad
-    generar_tarjeta(propiedades, i + 1)
+
+# Función para generar la tarjeta de propiedad
+def generar_tarjeta(propiedad):
+    colors = get_colors()
+    color_fondo = colors["basicBG"]
+    border_color = colors["borderBlack"]
+    top_color = colors[propiedad.color]  # Usamos el color de la propiedad
+
+    dwg = svgwrite.Drawing(f'repo/tarjetas/tarjeta_{propiedad.nombre}.svg', profile='tiny', size=("200px", "350px"))
+
+    # Fondo de la tarjeta
+    dwg.add(dwg.rect(insert=(0, 0), size=("200px", "350px"), fill=color_fondo, stroke=border_color, stroke_width=4))
+
+    # Color superior
+    dwg.add(dwg.rect(insert=(0, 0), size=("200px", "40px"), fill=top_color))
+
+    # Título de la propiedad (centrado en la parte superior)
+    dwg.add(dwg.text(f"TITLE DEED", insert=("100px", "25px"), font_size="12px", font_family="Arial Black", fill="white", text_anchor="middle"))
+
+    # Nombre de la propiedad (centrado en el centro de la tarjeta)
+    dwg.add(dwg.text(propiedad.nombre.upper(), insert=("100px", "80px"), font_size="18px", font_family="Arial", fill="black", text_anchor="middle"))
+
+    # Precio y renta base (centrado)
+    dwg.add(dwg.text(f"RENT: ${propiedad.renta_base}K", insert=("100px", "180px"), font_size="14px", font_family="Arial", fill="black", text_anchor="middle"))
+    dwg.add(dwg.text(f"Price: {propiedad.precio}K", insert=("100px", "200px"), font_size="14px", font_family="Arial", fill="black", text_anchor="middle"))
+
+    # Detalles de la propiedad (ubicados en la parte inferior)
+    dwg.add(dwg.text(f"Mortgage Value: {propiedad.precio}K", insert=("100px", "250px"), font_size="12px", font_family="Arial", fill="black", text_anchor="middle"))
+
+    # Guardar la tarjeta
+    dwg.save()
 
 # Definir algunas propiedades de ejemplo
 propiedades = [
-    Propiedad("Caseta", "red", "rojo", "caseta.png", 2, 1, "empresa"),
-    Propiedad("Hospital", "blue", "azul", "hospital.png", 5, 3, "empresa"),
-    Propiedad("Compañía de luz", "green", "amarillo", "luz.png", 3, 2, "empresa")
+    Propiedad("Baltic Avenue", "brown", "rojo", "caseta.png", 60, 10, "empresa"),
+    Propiedad("Mediterranean Avenue", "blue", "azul", "hospital.png", 100, 15, "empresa"),
+    Propiedad("Boardwalk", "green", "amarillo", "luz.png", 400, 50, "empresa")
 ]
 
-# Llamar a la función para generar todas las tarjetas
-generar_tarjeta(propiedades)
+# Generar la casilla y la tarjeta para cada propiedad
+for propiedad in propiedades:
+    generar_casilla(propiedad)
+    generar_tarjeta(propiedad)
