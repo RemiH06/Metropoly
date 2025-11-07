@@ -1,0 +1,29 @@
+[
+    {
+        "nombre": "El Colli",
+        "color": "brown",
+        "carril": "rojo",
+        "imagen": "caseta.png",
+        "precio": 0.5,
+        "renta_base": 100,
+        "tipo": "Propiedad"
+    },
+    {
+        "nombre": "Mediterranean Avenue",
+        "color": "blue",
+        "carril": "azul",
+        "imagen": "hospital.png",
+        "precio": 100,
+        "renta_base": 15,
+        "tipo": "empresa"
+    },
+    {
+        "nombre": "Boardwalk",
+        "color": "green",
+        "carril": "amarillo",
+        "imagen": "luz.png",
+        "precio": 400,
+        "renta_base": 50,
+        "tipo": "empresa"
+    }
+]
