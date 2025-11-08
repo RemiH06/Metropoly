@@ -23,7 +23,8 @@ def get_colors():
         "lightGreen": soup.find('style').string.split("--lightGreen:")[1].split(";")[0].strip(),
         "deepBlue": soup.find('style').string.split("--deepBlue:")[1].split(";")[0].strip(),
         "gold": soup.find('style').string.split("--gold:")[1].split(";")[0].strip(),
-        "chineseRed": soup.find('style').string.split("--chineseRed:")[1].split(";")[0].strip()
+        "chineseRed": soup.find('style').string.split("--chineseRed:")[1].split(";")[0].strip(),
+        "white": soup.find('style').string.split("--white:")[1].split(";")[0].strip()
     }
     
     return colors

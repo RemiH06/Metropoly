@@ -20,13 +20,23 @@
         "posicion": 1
     },
     {
-        "nombre": "El Colli 3",
+        "nombre": "Casa",
         "color": "red",
         "carril": 3,
         "imagen": "caseta.png",
-        "precio": 0.5,
+        "precio": 100,
         "renta_base": 100,
         "tipo": 3,
         "posicion": 2
+    },
+    {
+        "nombre": "NULL",
+        "color": "white",
+        "carril": 1,
+        "imagen": "",
+        "precio": 0,
+        "renta_base": 0,
+        "tipo": 1,
+        "posicion": 1
     }
 ]

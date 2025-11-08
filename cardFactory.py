@@ -4,8 +4,8 @@ from palette import get_colors
 import base64
 
 # Cargar las propiedades desde el archivo JSON
-def cargar_propiedades():
-    with open('propiedades.json', 'r') as f:
+def cargar_propiedades(prop):
+    with open(prop, 'r') as f:
         propiedades_data = json.load(f)
     
     propiedades = []
