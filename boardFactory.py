@@ -1,362 +1,475 @@
+# boardFactory.py
+
 import os
 import json
-import svgwrite
+import math
+from dataclasses import dataclass
+from typing import Dict, Tuple, List, Optional
 
-# --- config global simple ---
+# =========================
+# CONSTANTS
+# =========================
 
-# si es True: usa el máximo posible de casillas por carril (hasta el límite canónico)
-# si es False: fuerza 64 / 60 / 56 (rellenando con NULL si faltan)
-fit = False
-
-TILE_WIDTH = 150      # casilla regular
+TILE_WIDTH = 150
 TILE_HEIGHT = 225
-CORNER_SIZE = 225     # esquina (cuadrada)
-CELL_SIZE = CORNER_SIZE  # tamaño base de celda en el tablero
+CORNER_SIZE = 225
 
-TILE_DIR = "src/casillas"   # donde están los SVG: casilla_{nombre}.svg
+BLUE_CANONICAL = 64
+YELLOW_CANONICAL = 60
+RED_CANONICAL = 56
+
 NULL_TILE_FILE = "casilla_NULL.svg"
 
-
-class Property:
-    def __init__(self, name, color, lane, image, price, baseRent, cardType, position):
-        self.name = name
-        self.color = color
-        self.lane = lane          # 1 = blue, 2 = yellow, 3 = red
-        self.image = image
-        self.price = price
-        self.baseRent = baseRent
-        self.cardType = cardType  # 1..7
-        self.position = position  # 1 = regular, 2 = corner
+DEFAULT_TILES_DIR = os.path.join("repo", "casillas")
+DEFAULT_PROPS_PATH = os.path.join("props", "propiedades.json")
 
 
-# ---------- carga y organización ----------
+# =========================
+# MODEL
+# =========================
 
-def loadProperties(propsDir: str = "props") -> list[Property]:
-    """Load all JSON files in propsDir and return a flat list of Property objects."""
-    properties: list[Property] = []
-
-    for filename in os.listdir(propsDir):
-        if not filename.endswith(".json"):
-            continue
-        jsonPath = os.path.join(propsDir, filename)
-        with open(jsonPath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        for item in data:
-            properties.append(
-                Property(
-                    name=item["nombre"],
-                    color=item["color"],
-                    lane=item["carril"],
-                    image=item["imagen"],
-                    price=item["precio"],
-                    baseRent=item["renta_base"],
-                    cardType=item["tipo"],
-                    position=item["posicion"],
-                )
-            )
-
-    return properties
+@dataclass
+class TileCell:
+    imagePath: str
+    rotation: int  # degrees
+    name: Optional[str]
+    lane: str
+    isCorner: bool
 
 
-def splitTracks(properties: list[Property]):
-    """
-    Return 6 arrays:
-      blueTrack, yellowTrack, redTrack, blueCorners, yellowCorners, redCorners
-    """
-    blueTrack: list[Property] = []
-    yellowTrack: list[Property] = []
-    redTrack: list[Property] = []
+# =========================
+# PROPERTIES HELPERS
+# =========================
 
-    blueCorners: list[Property] = []
-    yellowCorners: list[Property] = []
-    redCorners: list[Property] = []
+def loadProperties(propsPath: str = DEFAULT_PROPS_PATH) -> Dict[str, dict]:
+    """Load propiedades.json and return a dict indexed by property name."""
+    if not os.path.exists(propsPath):
+        return {}
 
-    for prop in properties:
-        if prop.position == 1:  # regular
-            if prop.lane == 1:
-                blueTrack.append(prop)
-            elif prop.lane == 2:
-                yellowTrack.append(prop)
-            elif prop.lane == 3:
-                redTrack.append(prop)
-        elif prop.position == 2:  # corner
-            if prop.lane == 1:
-                blueCorners.append(prop)
-            elif prop.lane == 2:
-                yellowCorners.append(prop)
-            elif prop.lane == 3:
-                redCorners.append(prop)
+    with open(propsPath, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    return (
-        blueTrack,
-        yellowTrack,
-        redTrack,
-        blueCorners,
-        yellowCorners,
-        redCorners,
-    )
-
-
-# ---------- helpers de tamaño / slots ----------
-
-def computeTrackTotal(available: int, canonical: int, useFit: bool) -> int:
-    """
-    Decide cuántas casillas tendrá el anillo (incluyendo esquinas).
-
-    - useFit False -> usa siempre el valor canónico (64 / 60 / 56).
-      Si faltan casillas, se rellena con NULL.
-    - useFit True  -> usa hasta 'available' (sin pasar de canonical),
-      y lo fuerza a múltiplo de 4 para que haya 4 lados.
-    """
-    if not useFit:
-        return canonical
-
-    total = min(available, canonical)
-    if total <= 0:
-        return 0
-
-    # múltiplo de 4
-    total -= total % 4
-    if total < 4:
-        total = 4
-    return total
-
-
-def buildLaneSlots(
-    trackList: list[Property],
-    cornerList: list[Property],
-    targetTotal: int,
-) -> tuple[list[Property | None], int]:
-    """
-    Construye los slots lineales de un anillo (incluyendo esquinas).
-    Devuelve (slots, sideLength).
-
-    - targetTotal: número total de casillas del anillo (múltiplo de 4).
-    - sideLength = targetTotal / 4.
-    - corners en posiciones: 0, side-1, 2*side-1, 3*side-1.
-    - el resto se rellena con trackList en orden; si faltan, quedan None.
-      si sobran, se ignoran.
-    """
-    if targetTotal <= 0:
-        return [], 0
-
-    sideLength = max(1, targetTotal // 4)
-    totalSlots = sideLength * 4
-
-    slots: list[Property | None] = [None] * totalSlots
-
-    # colocar esquinas (hasta 4)
-    cornerPositions = [0, sideLength - 1, 2 * sideLength - 1, 3 * sideLength - 1]
-    for i, pos in enumerate(cornerPositions):
-        if i < len(cornerList) and pos < totalSlots:
-            slots[pos] = cornerList[i]
-
-    # rellenar con propiedades regulares
-    trackIter = iter(trackList)
-    for i in range(totalSlots):
-        if slots[i] is None:
-            try:
-                slots[i] = next(trackIter)
-            except StopIteration:
-                # se queda None -> luego será NULL
-                pass
-
-    return slots, sideLength
-
-
-def indexToCoord(
-    index: int,
-    sideLength: int,
-    offsetCells: float,
-) -> tuple[float, float]:
-    """
-    Convierte un índice del anillo (0..4*sideLength-1)
-    a coordenadas (x, y) en pixeles usando celdas de CELL_SIZE.
-
-    offsetCells centra anillos interiores.
-    """
-    side = sideLength
-    i = index
-
-    if side <= 0:
-        return 0.0, 0.0
-
-    # top: left -> right
-    if i < side:
-        x = (offsetCells + i) * CELL_SIZE
-        y = offsetCells * CELL_SIZE
-    # right: top -> bottom
-    elif i < 2 * side:
-        k = i - side
-        x = (offsetCells + side - 1) * CELL_SIZE
-        y = (offsetCells + k) * CELL_SIZE
-    # bottom: right -> left
-    elif i < 3 * side:
-        k = i - 2 * side
-        x = (offsetCells + side - 1 - k) * CELL_SIZE
-        y = (offsetCells + side - 1) * CELL_SIZE
-    # left: bottom -> top
+    if isinstance(data, dict) and "properties" in data:
+        propList = data["properties"]
+    elif isinstance(data, list):
+        propList = data
     else:
-        k = i - 3 * side
-        x = offsetCells * CELL_SIZE
-        y = (offsetCells + side - 1 - k) * CELL_SIZE
+        propList = []
 
-    return float(x), float(y)
+    propByName: Dict[str, dict] = {}
+    for prop in propList:
+        name = prop.get("name") or prop.get("nombre") or prop.get("Nombre")
+        if name:
+            propByName[name] = prop
 
-
-def getTilePath(prop: Property | None, tileDir: str = TILE_DIR) -> str:
-    """
-    Devuelve el path relativo al SVG para la casilla correspondiente.
-    Si no existe, o prop es None, usa la casilla NULL.
-    """
-    if prop is None:
-        return f"{tileDir}/{NULL_TILE_FILE}"
-
-    fileName = f"casilla_{prop.name}.svg"
-    fsPath = os.path.join(tileDir, fileName)
-
-    if not os.path.exists(fsPath):
-        return f"{tileDir}/{NULL_TILE_FILE}"
-
-    return f"{tileDir}/{fileName}"
+    return propByName
 
 
-# ---------- dibujo del tablero ----------
-
-def drawTileImage(
-    dwg: svgwrite.Drawing,
-    prop: Property | None,
-    x: float,
-    y: float,
-    isCorner: bool,
-    tileDir: str = TILE_DIR,
-):
-    """
-    Inserta una imagen de casilla en (x, y).
-    - Si es esquina -> 225x225.
-    - Si es regular -> 150x225 centrada horizontalmente dentro de la celda de 225x225.
-    """
-    href = getTilePath(prop, tileDir)
-
-    if isCorner:
-        width = CORNER_SIZE
-        height = CORNER_SIZE
-        insert = (x, y)
-    else:
-        width = TILE_WIDTH
-        height = TILE_HEIGHT
-        horizontalMargin = (CELL_SIZE - TILE_WIDTH) / 2.0
-        insert = (x + horizontalMargin, y)
-
-    dwg.add(
-        dwg.image(
-            href=href,
-            insert=insert,
-            size=(width, height),
-        )
-    )
-
-
-def generateBoardSvg(
-    outputPath: str = "repo/board.svg",
-    propsDir: str = "props",
-    tileDir: str = TILE_DIR,
-    useFit: bool | None = None,
+def validateLaneAssignments(
+    laneNames: List[str],
+    cornerNames: List[str],
+    laneColor: str,
+    propByName: Dict[str, dict],
+    label: str,
 ) -> None:
     """
-    Construye el tablero completo como un solo SVG, usando
-    los SVG de casilla en tileDir y los JSON de propsDir.
-
-    - Azul: 64 casillas (carril externo)  (incluyendo esquinas)
-    - Amarillo: 60 casillas (anillo intermedio)
-    - Rojo: 56 casillas (anillo interno)
-    - Si useFit es True, cada anillo intenta usar el máximo posible
-      hasta su límite (64/60/56), respetando el orden azul > amarillo > rojo.
-    - Si useFit es False, fuerza exactamente 64/60/56 rellanando con NULL.
+    Check propiedades.carril / propiedades.lane and propiedades.posicion / position.
+    Only prints warnings (no exceptions).
     """
-    if useFit is None:
-        useFit = fit
+    allNames = list(laneNames) + list(cornerNames)
 
-    properties = loadProperties(propsDir)
-    (
-        blueTrack,
-        yellowTrack,
-        redTrack,
-        blueCorners,
-        yellowCorners,
-        redCorners,
-    ) = splitTracks(properties)
+    for index, name in enumerate(allNames):
+        prop = propByName.get(name)
+        if not prop:
+            print(f"[boardFactory] Warning: property '{name}' from {label} not found in propiedades.json")
+            continue
 
-    # total disponibles por carril (regulares + esquinas)
-    blueAvailable = len(blueTrack) + len(blueCorners)
-    yellowAvailable = len(yellowTrack) + len(yellowCorners)
-    redAvailable = len(redTrack) + len(redCorners)
+        laneValue = (
+            prop.get("lane")
+            or prop.get("carril")
+            or prop.get("Carril")
+        )
+        if laneValue and str(laneValue).lower() != laneColor.lower():
+            print(
+                f"[boardFactory] Warning: property '{name}' has lane '{laneValue}' "
+                f"but is listed in {label} for lane '{laneColor}'"
+            )
 
-    # valores canónicos
-    blueCanonical = 64
-    yellowCanonical = 60
-    redCanonical = 56
+        positionValue = (
+            prop.get("position")
+            or prop.get("posicion")
+            or prop.get("Posicion")
+            or prop.get("posición")
+            or prop.get("Posición")
+        )
+        if positionValue is not None and isinstance(positionValue, int):
+            if positionValue != index:
+                print(
+                    f"[boardFactory] Warning: property '{name}' has position {positionValue} "
+                    f"but appears at index {index} in {label}"
+                )
 
-    blueTotal = computeTrackTotal(blueAvailable, blueCanonical, useFit)
-    yellowTotal = computeTrackTotal(yellowAvailable, yellowCanonical, useFit)
-    redTotal = computeTrackTotal(redAvailable, redCanonical, useFit)
 
-    # asegurar anidamiento azul >= amarillo >= rojo
-    if yellowTotal > blueTotal:
-        yellowTotal = blueTotal
-    if redTotal > yellowTotal:
-        redTotal = yellowTotal
+# =========================
+# GEOMETRY HELPERS
+# =========================
 
-    # forzar múltiplos de 4
-    def adjustTotal(x: int) -> int:
-        if x <= 0:
-            return 0
-        x -= x % 4
-        return max(x, 4)
+def sideLengthFromPerimeter(perimeter: int) -> int:
+    """Given a ring perimeter (4*n - 4) return side length n."""
+    if perimeter < 4:
+        return 2
+    return perimeter // 4 + 1
 
-    blueTotal = adjustTotal(blueTotal)
-    yellowTotal = adjustTotal(yellowTotal) if yellowTotal > 0 else 0
-    redTotal = adjustTotal(redTotal) if redTotal > 0 else 0
 
-    # construir slots por anillo
-    blueSlots, blueSide = buildLaneSlots(blueTrack, blueCorners, blueTotal)
-    yellowSlots, yellowSide = buildLaneSlots(yellowTrack, yellowCorners, yellowTotal)
-    redSlots, redSide = buildLaneSlots(redTrack, redCorners, redTotal)
+def computeSideLengthForFit(tileCount: int) -> int:
+    """
+    For fit=True, compute the minimal side length n so that
+    4*n - 4 >= tileCount, with n >= 3.
+    """
+    tileCount = max(tileCount, 4)
+    sideFloat = (tileCount + 4) / 4.0
+    sideLen = max(3, math.ceil(sideFloat))
+    return sideLen
 
-    outerSide = max(blueSide, yellowSide, redSide)
-    if outerSide <= 0:
-        # nada que dibujar
-        return
 
-    boardSizePx = outerSide * CELL_SIZE
-    dwg = svgwrite.Drawing(
-        outputPath,
-        profile="full",
-        size=(f"{boardSizePx}px", f"{boardSizePx}px"),
+def iterRingCoordinates(size: int):
+    """
+    Yield all coordinates of a square ring of side 'size' in order,
+    starting at bottom-left corner and going clockwise.
+    """
+    last = size - 1
+
+    # bottom row: left -> right
+    for col in range(size):
+        yield (last, col)
+
+    # right column: bottom-1 -> top
+    for row in range(last - 1, -1, -1):
+        yield (row, last)
+
+    # top row: right-1 -> left
+    for col in range(last - 1, -1, -1):
+        yield (0, col)
+
+    # left column: top+1 -> bottom-1
+    for row in range(1, last):
+        yield (row, 0)
+
+
+def computeRotation(row: int, col: int, size: int) -> int:
+    """Rotation so that each tile faces the center."""
+    last = size - 1
+    if row == 0:
+        return 0       # top side
+    if col == last:
+        return 90      # right side (clockwise)
+    if row == last:
+        return 180     # bottom side
+    if col == 0:
+        return 270     # left side (counter-clockwise)
+    return 0
+
+
+def isCorner(row: int, col: int, size: int) -> bool:
+    last = size - 1
+    return (row in (0, last)) and (col in (0, last))
+
+
+# =========================
+# RING CONSTRUCTION
+# =========================
+
+def createRingCells(
+    size: int,
+    laneNames: List[str],
+    cornerNames: List[str],
+    laneColor: str,
+    tilesDir: str,
+    nullTileFile: str = NULL_TILE_FILE,
+) -> Dict[Tuple[int, int], TileCell]:
+    """
+    Build a dict (row, col) -> TileCell for a ring.
+    If there are too few names, fill with NULL.
+    If there are too many, the extras are ignored.
+    """
+    coords = list(iterRingCoordinates(size))
+    laneIter = iter(laneNames)
+    cornerIter = iter(cornerNames)
+
+    ringCells: Dict[Tuple[int, int], TileCell] = {}
+
+    for row, col in coords:
+        cornerFlag = isCorner(row, col, size)
+        name = None
+
+        if cornerFlag:
+            try:
+                name = next(cornerIter)
+            except StopIteration:
+                name = None
+        else:
+            try:
+                name = next(laneIter)
+            except StopIteration:
+                name = None
+
+        if name:
+            fileName = f"casilla_{name}.svg"
+            filePath = os.path.join(tilesDir, fileName)
+            if not os.path.exists(filePath):
+                print(
+                    f"[boardFactory] Warning: tile file '{fileName}' not found for property '{name}', "
+                    f"using NULL tile."
+                )
+                filePath = os.path.join(tilesDir, nullTileFile)
+        else:
+            filePath = os.path.join(tilesDir, nullTileFile)
+
+        # === 🔧 FIX: reference SVGs using '../casillas/' relative path ===
+        relPath = f"../casillas/{os.path.basename(filePath)}"
+
+        rotation = computeRotation(row, col, size)
+        cell = TileCell(
+            imagePath=relPath.replace("\\", "/"),
+            rotation=rotation,
+            name=name,
+            lane=laneColor,
+            isCorner=cornerFlag,
+        )
+        ringCells[(row, col)] = cell
+
+    return ringCells
+
+
+def renderTileCell(cell: TileCell) -> str:
+    alt = cell.name or "Empty"
+    rotationClass = f"rot-{cell.rotation}"
+    laneClass = f"lane-{cell.lane}"
+    return (
+        f'<img src="{cell.imagePath}" alt="{alt}" '
+        f'class="tile-image {rotationClass} {laneClass}"/>'
     )
 
-    # offsets para centrar anillos interiores
-    blueOffsetCells = 0.0
-    yellowOffsetCells = (outerSide - yellowSide) / 2.0 if yellowSide > 0 else 0.0
-    redOffsetCells = (outerSide - redSide) / 2.0 if redSide > 0 else 0.0
 
-    # azul (externo)
-    for i, prop in enumerate(blueSlots):
-        x, y = indexToCoord(i, blueSide, blueOffsetCells)
-        isCorner = prop is not None and prop.position == 2
-        drawTileImage(dwg, prop, x, y, isCorner=isCorner, tileDir=tileDir)
+def buildRingTable(
+    size: int,
+    ringCells: Dict[Tuple[int, int], TileCell],
+    laneCssClass: str,
+    innerTableHtml: Optional[str] = None,
+) -> str:
+    """
+    Build the HTML <table> for one ring.
+    If innerTableHtml is provided, it is nested in the center (one big cell with rowspan/colspan).
+    """
+    htmlParts: List[str] = []
+    htmlParts.append(f'<table class="board-ring {laneCssClass}">')
 
-    # amarillo (medio)
-    for i, prop in enumerate(yellowSlots):
-        x, y = indexToCoord(i, yellowSide, yellowOffsetCells)
-        isCorner = prop is not None and prop.position == 2
-        drawTileImage(dwg, prop, x, y, isCorner=isCorner, tileDir=tileDir)
+    last = size - 1
 
-    # rojo (interno)
-    for i, prop in enumerate(redSlots):
-        x, y = indexToCoord(i, redSide, redOffsetCells)
-        isCorner = prop is not None and prop.position == 2
-        drawTileImage(dwg, prop, x, y, isCorner=isCorner, tileDir=tileDir)
+    for row in range(size):
+        # top or bottom row: full row of perimeter cells
+        if row == 0 or row == last:
+            htmlParts.append("<tr>")
+            for col in range(size):
+                cell = ringCells[(row, col)]
+                htmlParts.append(f"<td>{renderTileCell(cell)}</td>")
+            htmlParts.append("</tr>")
+            continue
 
-    dwg.save()
+        # row that introduces the inner table
+        if innerTableHtml is not None and row == 1:
+            htmlParts.append("<tr>")
+
+            # left perimeter
+            leftCell = ringCells[(row, 0)]
+            htmlParts.append(f"<td>{renderTileCell(leftCell)}</td>")
+
+            # central cell: spans the inner square
+            colspan = size - 2
+            rowspan = size - 2
+            htmlParts.append(
+                f'<td colspan="{colspan}" rowspan="{rowspan}" class="inner-ring-container">'
+            )
+            htmlParts.append(innerTableHtml)
+            htmlParts.append("</td>")
+
+            # right perimeter
+            rightCell = ringCells[(row, last)]
+            htmlParts.append(f"<td>{renderTileCell(rightCell)}</td>")
+
+            htmlParts.append("</tr>")
+            continue
+
+        # middle rows
+        htmlParts.append("<tr>")
+
+        leftCell = ringCells[(row, 0)]
+        htmlParts.append(f"<td>{renderTileCell(leftCell)}</td>")
+
+        if innerTableHtml is None:
+            # innermost ring: fill interior cells with blanks or extra tiles if ever needed
+            for col in range(1, last):
+                if (row, col) in ringCells:
+                    cell = ringCells[(row, col)]
+                    htmlParts.append(f"<td>{renderTileCell(cell)}</td>")
+                else:
+                    htmlParts.append("<td></td>")
+
+        rightCell = ringCells[(row, last)]
+        htmlParts.append(f"<td>{renderTileCell(rightCell)}</td>")
+
+        htmlParts.append("</tr>")
+
+    htmlParts.append("</table>")
+    return "\n".join(htmlParts)
+
+
+# =========================
+# PUBLIC API
+# =========================
+
+def generateBoardHtml(
+    blueLaneNames: List[str],
+    yellowLaneNames: List[str],
+    redLaneNames: List[str],
+    blueCornerNames: List[str],
+    yellowCornerNames: List[str],
+    redCornerNames: List[str],
+    tilesDir: str = DEFAULT_TILES_DIR,
+    propsPath: str = DEFAULT_PROPS_PATH,
+    nullTileFile: str = NULL_TILE_FILE,
+    fit: bool = False,
+) -> str:
+    """
+    Return a full HTML document with the board rendered as nested tables.
+
+    blueLaneNames / yellowLaneNames / redLaneNames:
+        ["El Colli", "El Colli 2", ...]  (no 'casilla_' prefix, that is added here)
+
+    blueCornerNames / yellowCornerNames / redCornerNames:
+        same format but only corners (4 per ring; extras are ignored).
+
+    fit = False:
+        Use canonical ring sizes:
+            blue  = 64 tiles
+            yellow= 60 tiles
+            red   = 56 tiles
+        Excess tiles are ignored, missing tiles use NULL.
+
+    fit = True:
+        Adapt the side length of each ring to the number of tiles, so that
+        4*n - 4 >= tileCount. The blue ring defines the outer board size.
+    """
+    propByName = loadProperties(propsPath)
+
+    # validation against propiedades.json (only warnings)
+    validateLaneAssignments(blueLaneNames, blueCornerNames, "blue", propByName, "blue lane")
+    validateLaneAssignments(yellowLaneNames, yellowCornerNames, "yellow", propByName, "yellow lane")
+    validateLaneAssignments(redLaneNames, redCornerNames, "red", propByName, "red lane")
+
+    # choose perimeters
+    if fit:
+        bluePerimeter = 4 * computeSideLengthForFit(len(blueLaneNames) + len(blueCornerNames)) - 4
+        yellowPerimeter = 4 * computeSideLengthForFit(len(yellowLaneNames) + len(yellowCornerNames)) - 4
+        redPerimeter = 4 * computeSideLengthForFit(len(redLaneNames) + len(redCornerNames)) - 4
+    else:
+        bluePerimeter = BLUE_CANONICAL
+        yellowPerimeter = YELLOW_CANONICAL
+        redPerimeter = RED_CANONICAL
+
+    blueSize = sideLengthFromPerimeter(bluePerimeter)
+    yellowSize = sideLengthFromPerimeter(yellowPerimeter)
+    redSize = sideLengthFromPerimeter(redPerimeter)
+
+    # nesting constraint when fit=True: each inner ring must be smaller
+    if fit:
+        yellowSize = min(yellowSize, blueSize - 1)
+        redSize = min(redSize, yellowSize - 1)
+
+    # build ring cells
+    blueCells = createRingCells(blueSize, blueLaneNames, blueCornerNames, "blue", tilesDir, nullTileFile)
+    yellowCells = createRingCells(yellowSize, yellowLaneNames, yellowCornerNames, "yellow", tilesDir, nullTileFile)
+    redCells = createRingCells(redSize, redLaneNames, redCornerNames, "red", tilesDir, nullTileFile)
+
+    # nested tables: red inside yellow inside blue
+    redTable = buildRingTable(redSize, redCells, "ring-red", innerTableHtml=None)
+    yellowTable = buildRingTable(yellowSize, yellowCells, "ring-yellow", innerTableHtml=redTable)
+    blueTable = buildRingTable(blueSize, blueCells, "ring-blue", innerTableHtml=yellowTable)
+
+    style = """
+    <style>
+    .board-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 1rem;
+    }
+    table.board-ring {
+        border-collapse: collapse;
+    }
+    table.board-ring td {
+        padding: 0;
+        border: 1px solid #010101;
+    }
+    img.tile-image {
+        display: block;
+    }
+    .tile-image.rot-0   { transform: rotate(0deg); }
+    .tile-image.rot-90  { transform: rotate(90deg); }
+    .tile-image.rot-180 { transform: rotate(180deg); }
+    .tile-image.rot-270 { transform: rotate(270deg); }
+    </style>
+    """
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Metropoly Board</title>
+{style}
+</head>
+<body>
+<div class="board-container">
+{blueTable}
+</div>
+</body>
+</html>
+"""
+    return html
+
+
+def saveBoardHtml(
+    outputPath: str,
+    blueLaneNames: List[str],
+    yellowLaneNames: List[str],
+    redLaneNames: List[str],
+    blueCornerNames: List[str],
+    yellowCornerNames: List[str],
+    redCornerNames: List[str],
+    tilesDir: str = DEFAULT_TILES_DIR,
+    propsPath: str = DEFAULT_PROPS_PATH,
+    nullTileFile: str = NULL_TILE_FILE,
+    fit: bool = False,
+) -> str:
+    """
+    Helper to directly generate and save the board HTML.
+    Returns the output path.
+    """
+    html = generateBoardHtml(
+        blueLaneNames=blueLaneNames,
+        yellowLaneNames=yellowLaneNames,
+        redLaneNames=redLaneNames,
+        blueCornerNames=blueCornerNames,
+        yellowCornerNames=yellowCornerNames,
+        redCornerNames=redCornerNames,
+        tilesDir=tilesDir,
+        propsPath=propsPath,
+        nullTileFile=nullTileFile,
+        fit=fit,
+    )
+
+    os.makedirs(os.path.dirname(outputPath), exist_ok=True)
+    with open(outputPath, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    return outputPath
