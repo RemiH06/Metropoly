@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    table {
+      border-collapse: collapse;
+    }
+
+    td {
+      width: 150px;
+      height: 150px;
+      border: 1px solid #000;
+    }
+
+    .large {
+      width: 225px !important;
+      height: 225px !important;
+    }
+
+    .blue {
+      background-color: blue;
+    }
+
+    .yellow {
+      background-color: yellow;
+    }
+
+    .red {
+      background-color: red;
+    }
+  </style>
+</head>
+<body>
+  <table id="diana-table"></table>
+
+  <script>
+    const tableSize = 17;
+    const center = Math.floor((tableSize + 1) / 2); // centro en 9
+    const table = document.getElementById("diana-table");
+
+    // Celdas grandes: esquinas + simétricas de 2 y 3
+    const largeCells = [
+      [1,1], [1,17], [17,1], [17,17], // esquinas
+      [2,2], [2,16], [16,2], [16,16], // segunda capa
+      [3,3], [3,15], [15,3], [15,15]  // tercera capa
+    ];
+
+    for (let row = 1; row <= tableSize; row++) {
+      const tr = document.createElement("tr");
+
+      for (let col = 1; col <= tableSize; col++) {
+        const td = document.createElement("td");
+
+        // Marcar como "large" si está en la lista
+        if (largeCells.some(([r, c]) => r === row && c === col)) {
+          td.classList.add("large");
+        }
+
+        // Colorear según distancia al centro
+        const distance = Math.max(Math.abs(center - row), Math.abs(center - col));
+
+        if (distance >= 6) {
+          td.classList.add("blue");
+        } else if (distance >= 3) {
+          td.classList.add("yellow");
+        } else {
+          td.classList.add("red");
+        }
+
+        tr.appendChild(td);
+      }
+
+      table.appendChild(tr);
+    }
+  </script>
+</body>
+</html>

@@ -267,24 +267,26 @@ def buildRingTable(
     last = size - 1
 
     for row in range(size):
-        # top or bottom row: full row of perimeter cells
+        # fila superior o inferior
         if row == 0 or row == last:
             htmlParts.append("<tr>")
             for col in range(size):
                 cell = ringCells[(row, col)]
-                htmlParts.append(f"<td>{renderTileCell(cell)}</td>")
+                tdClass = "large" if cell.isCorner else ""
+                classAttr = f' class="{tdClass}"' if tdClass else ""
+                htmlParts.append(f"<td{classAttr}>{renderTileCell(cell)}</td>")
             htmlParts.append("</tr>")
             continue
 
-        # row that introduces the inner table
+        # fila donde se inserta la tabla interior (para anillos azul/amarillo)
         if innerTableHtml is not None and row == 1:
             htmlParts.append("<tr>")
 
-            # left perimeter
             leftCell = ringCells[(row, 0)]
-            htmlParts.append(f"<td>{renderTileCell(leftCell)}</td>")
+            leftClass = "large" if leftCell.isCorner else ""
+            leftAttr = f' class="{leftClass}"' if leftClass else ""
+            htmlParts.append(f"<td{leftAttr}>{renderTileCell(leftCell)}</td>")
 
-            # central cell: spans the inner square
             colspan = size - 2
             rowspan = size - 2
             htmlParts.append(
@@ -293,30 +295,38 @@ def buildRingTable(
             htmlParts.append(innerTableHtml)
             htmlParts.append("</td>")
 
-            # right perimeter
             rightCell = ringCells[(row, last)]
-            htmlParts.append(f"<td>{renderTileCell(rightCell)}</td>")
+            rightClass = "large" if rightCell.isCorner else ""
+            rightAttr = f' class="{rightClass}"' if rightClass else ""
+            htmlParts.append(f"<td{rightAttr}>{renderTileCell(rightCell)}</td>")
 
             htmlParts.append("</tr>")
             continue
 
-        # middle rows
+        # filas intermedias
         htmlParts.append("<tr>")
 
         leftCell = ringCells[(row, 0)]
-        htmlParts.append(f"<td>{renderTileCell(leftCell)}</td>")
+        leftClass = "large" if leftCell.isCorner else ""
+        leftAttr = f' class="{leftClass}"' if leftClass else ""
+        htmlParts.append(f"<td{leftAttr}>{renderTileCell(leftCell)}</td>")
 
         if innerTableHtml is None:
-            # innermost ring: fill interior cells with blanks or extra tiles if ever needed
+            # anillo más interno (rojo): rellenar interior
             for col in range(1, last):
                 if (row, col) in ringCells:
                     cell = ringCells[(row, col)]
-                    htmlParts.append(f"<td>{renderTileCell(cell)}</td>")
+                    tdClass = "large" if cell.isCorner else ""
+                    classAttr = f' class="{tdClass}"' if tdClass else ""
+                    htmlParts.append(f"<td{classAttr}>{renderTileCell(cell)}</td>")
                 else:
-                    htmlParts.append("<td></td>")
+                    # celdas sin casilla: 150x150 por CSS
+                    htmlParts.append('<td class="inner-empty"></td>')
 
         rightCell = ringCells[(row, last)]
-        htmlParts.append(f"<td>{renderTileCell(rightCell)}</td>")
+        rightClass = "large" if rightCell.isCorner else ""
+        rightAttr = f' class="{rightClass}"' if rightClass else ""
+        htmlParts.append(f"<td{rightAttr}>{renderTileCell(rightCell)}</td>")
 
         htmlParts.append("</tr>")
 
@@ -341,101 +351,224 @@ def generateBoardHtml(
     fit: bool = False,
 ) -> str:
     """
-    Return a full HTML document with the board rendered as nested tables.
+    Genera un documento HTML con un solo tablero NxN.
 
-    blueLaneNames / yellowLaneNames / redLaneNames:
-        ["El Colli", "El Colli 2", ...]  (no 'casilla_' prefix, that is added here)
-
-    blueCornerNames / yellowCornerNames / redCornerNames:
-        same format but only corners (4 per ring; extras are ignored).
-
-    fit = False:
-        Use canonical ring sizes:
-            blue  = 64 tiles
-            yellow= 60 tiles
-            red   = 56 tiles
-        Excess tiles are ignored, missing tiles use NULL.
-
-    fit = True:
-        Adapt the side length of each ring to the number of tiles, so that
-        4*n - 4 >= tileCount. The blue ring defines the outer board size.
+    - TODAS las celdas son de 150x150.
+    - Únicamente la diagonal (0,0),(1,1),(2,2),(N-1,N-1),(N-2,N-2),(N-3,N-3)
+      tendrá 225x225 (clase .large).
+    - Los tres anillos (blue, yellow, red) se colocan como marcos concéntricos.
     """
+
     propByName = loadProperties(propsPath)
 
-    # validation against propiedades.json (only warnings)
+    # Sólo warnings de consistencia
     validateLaneAssignments(blueLaneNames, blueCornerNames, "blue", propByName, "blue lane")
     validateLaneAssignments(yellowLaneNames, yellowCornerNames, "yellow", propByName, "yellow lane")
     validateLaneAssignments(redLaneNames, redCornerNames, "red", propByName, "red lane")
 
-    # choose perimeters
-    if fit:
-        bluePerimeter = 4 * computeSideLengthForFit(len(blueLaneNames) + len(blueCornerNames)) - 4
-        yellowPerimeter = 4 * computeSideLengthForFit(len(yellowLaneNames) + len(yellowCornerNames)) - 4
-        redPerimeter = 4 * computeSideLengthForFit(len(redLaneNames) + len(redCornerNames)) - 4
+    # ============ Tamaño del tablero ============
+
+    # Cuando fit=False, usamos explícitamente N=17 como dijiste.
+    # Si quieres luego hacemos que fit=True ajuste N dinámicamente.
+    if not fit:
+        boardSize = sideLengthFromPerimeter(BLUE_CANONICAL)  # 64 -> 17
     else:
-        bluePerimeter = BLUE_CANONICAL
-        yellowPerimeter = YELLOW_CANONICAL
-        redPerimeter = RED_CANONICAL
+        # Por ahora fit=True se comporta igual en tamaño.
+        boardSize = sideLengthFromPerimeter(BLUE_CANONICAL)
 
-    blueSize = sideLengthFromPerimeter(bluePerimeter)
-    yellowSize = sideLengthFromPerimeter(yellowPerimeter)
-    redSize = sideLengthFromPerimeter(redPerimeter)
+    # tres anillos concéntricos: azul, amarillo, rojo
+    blueSize = boardSize          # anillo exterior
+    yellowSize = max(boardSize - 2, 0)  # desplazado 1
+    redSize = max(boardSize - 4, 0)     # desplazado 2
 
-    # nesting constraint when fit=True: each inner ring must be smaller
-    if fit:
-        yellowSize = min(yellowSize, blueSize - 1)
-        redSize = min(redSize, yellowSize - 1)
+    # Diccionario global (row, col) -> TileCell
+    boardCells: Dict[Tuple[int, int], TileCell] = {}
 
-    # build ring cells
-    blueCells = createRingCells(blueSize, blueLaneNames, blueCornerNames, "blue", tilesDir, nullTileFile)
-    yellowCells = createRingCells(yellowSize, yellowLaneNames, yellowCornerNames, "yellow", tilesDir, nullTileFile)
-    redCells = createRingCells(redSize, redLaneNames, redCornerNames, "red", tilesDir, nullTileFile)
+    # ============ Anillo azul (exterior) ============
+    if blueSize >= 3:
+        blueRing = createRingCells(
+            size=blueSize,
+            laneNames=blueLaneNames,
+            cornerNames=blueCornerNames,
+            laneColor="blue",
+            tilesDir=tilesDir,
+            nullTileFile=nullTileFile,
+        )
+        offsetBlue = 0
+        for (r, c), cell in blueRing.items():
+            boardCells[(r + offsetBlue, c + offsetBlue)] = cell
 
-    # nested tables: red inside yellow inside blue
-    redTable = buildRingTable(redSize, redCells, "ring-red", innerTableHtml=None)
-    yellowTable = buildRingTable(yellowSize, yellowCells, "ring-yellow", innerTableHtml=redTable)
-    blueTable = buildRingTable(blueSize, blueCells, "ring-blue", innerTableHtml=yellowTable)
+    # ============ Anillo amarillo (medio) ============
+    if yellowSize >= 3:
+        yellowRing = createRingCells(
+            size=yellowSize,
+            laneNames=yellowLaneNames,
+            cornerNames=yellowCornerNames,
+            laneColor="yellow",
+            tilesDir=tilesDir,
+            nullTileFile=nullTileFile,
+        )
+        offsetYellow = 1
+        for (r, c), cell in yellowRing.items():
+            boardCells[(r + offsetYellow, c + offsetYellow)] = cell
+
+    # ============ Anillo rojo (interno) ============
+    if redSize >= 3:
+        redRing = createRingCells(
+            size=redSize,
+            laneNames=redLaneNames,
+            cornerNames=redCornerNames,
+            laneColor="red",
+            tilesDir=tilesDir,
+            nullTileFile=nullTileFile,
+        )
+        offsetRed = 2
+        for (r, c), cell in redRing.items():
+            boardCells[(r + offsetRed, c + offsetRed)] = cell
+
+    # ============ HTML de la tabla única ============
+    boardHtml = buildBoardTable(boardSize, boardCells)
 
     style = """
-    <style>
+<style>
     .board-container {
         display: flex;
         justify-content: center;
         align-items: center;
         margin: 1rem;
     }
-    table.board-ring {
+
+    table.board {
         border-collapse: collapse;
+        border: none;  /* Bordes transparentes */
     }
-    table.board-ring td {
+
+    table.board td {
+        width: 150px;
+        height: 150px;
         padding: 0;
-        border: 1px solid #010101;
+        border: 1px solid transparent;  /* Bordes transparentes */
+        overflow: hidden;  /* Asegura que no se salgan del borde */
+        position: relative;  /* Necesario para que los SVGs puedan estar en un z-index mayor */
     }
+
+    /* Celdas con clase .corner (225px x 225px) */
+    table.board td.corner {
+        width: 225px !important;
+        height: 225px !important;
+    }
+
+    /* Celdas con clase .vertical (150px de ancho, 225px de alto) */
+    table.board td.vertical {
+        width: 225px !important;
+        height: 150px !important;
+    }
+
+    /* Celdas con clase .horizontal (225px de ancho, 150px de alto) */
+    table.board td.horizontal {
+        width: 150px !important;
+        height: 225px !important;
+    }
+
+    /* Ajustamos el SVG para que se ajuste dentro de la celda sin recortes */
     img.tile-image {
         display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;  /* Cambié a fill para asegurar que el SVG cubra toda la celda */
+        object-position: center;  /* Centra el contenido del SVG */
+        margin: 0;
+        padding: 0;
+        transform-origin: center center;
     }
+
+    /* Rotación de los SVGs */
     .tile-image.rot-0   { transform: rotate(0deg); }
     .tile-image.rot-90  { transform: rotate(90deg); }
     .tile-image.rot-180 { transform: rotate(180deg); }
     .tile-image.rot-270 { transform: rotate(270deg); }
-    </style>
+</style>
+
+
+
     """
 
     html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Metropoly Board</title>
-{style}
-</head>
-<body>
-<div class="board-container">
-{blueTable}
-</div>
-</body>
-</html>
-"""
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>Metropoly Board</title>
+    {style}
+    </head>
+    <body>
+    <div class="board-container">
+    {boardHtml}
+    </div>
+    </body>
+    </html>
+    """
     return html
+
+
+def buildBoardTable(
+    boardSize: int,
+    boardCells: Dict[Tuple[int, int], TileCell]
+) -> str:
+    """
+    Construye una tabla HTML estática con las celdas que tienen las clases:
+    - .corner (225x225px)
+    - .vertical (150x225px)
+    - .horizontal (225x150px)
+    """
+    htmlParts: List[str] = []
+    htmlParts.append('<table class="board">')
+
+    last = boardSize - 1
+    largeIndices = {0, 1, 2, last, last - 1, last - 2}  # Celdas diagonales
+
+    for row in range(boardSize):
+        htmlParts.append("<tr>")  # Fila
+
+        # Para las filas con `corner`:
+        if row < 3 or row >= boardSize - 3:
+            # Primera y última fila (y sus equivalentes)
+            for col in range(boardSize):
+                cell = boardCells.get((row, col))
+
+                # Esquinas: las tres primeras y tres últimas celdas con la clase `corner`
+                if col < 3 or col >= boardSize - 3:
+                    classes = ["corner"]
+                else:
+                    # El resto de las celdas en la fila con la clase `horizontal`
+                    classes = ["horizontal"]
+
+                classAttr = f' class="{" ".join(classes)}"'
+                if cell:
+                    htmlParts.append(f"<td{classAttr}>{renderTileCell(cell)}</td>")
+                else:
+                    htmlParts.append(f"<td{classAttr}></td>")  # Celdas vacías (sin casilla)
+        else:
+            # Para las filas intermedias, donde todo es `vertical` e `inner-empty`
+            for col in range(boardSize):
+                cell = boardCells.get((row, col))
+
+                # Las tres primeras y últimas celdas de la fila con clase `vertical`
+                if col < 3 or col >= boardSize - 3:
+                    classes = ["vertical"]
+                else:
+                    # Las celdas intermedias tienen clase `inner-empty`
+                    classes = ["inner-empty"]
+
+                classAttr = f' class="{" ".join(classes)}"'
+                if cell:
+                    htmlParts.append(f"<td{classAttr}>{renderTileCell(cell)}</td>")
+                else:
+                    htmlParts.append(f"<td{classAttr}></td>")  # Celdas vacías (sin casilla)
+
+        htmlParts.append("</tr>")  # Fin de la fila
+
+    htmlParts.append("</table>")
+    return "\n".join(htmlParts)
 
 
 def saveBoardHtml(
