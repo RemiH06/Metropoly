@@ -18,7 +18,7 @@ BLUE_CANONICAL = 64
 YELLOW_CANONICAL = 60
 RED_CANONICAL = 56
 
-NULL_TILE_FILE = "casilla_NULL.svg"
+NULL_TILE_FILE = "casilla_NULL"
 
 DEFAULT_TILES_DIR = os.path.join("repo", "casillas")
 DEFAULT_PROPS_PATH = os.path.join("props", "propiedades.json")
@@ -201,6 +201,7 @@ def createRingCells(
     for row, col in coords:
         cornerFlag = isCorner(row, col, size)
         name = None
+        rotation = computeRotation(row, col, size)
 
         if cornerFlag:
             try:
@@ -214,21 +215,21 @@ def createRingCells(
                 name = None
 
         if name:
-            fileName = f"casilla_{name}.svg"
+            fileName = f"casilla_{name}_{rotation}.svg"
+            print(fileName)
             filePath = os.path.join(tilesDir, fileName)
             if not os.path.exists(filePath):
                 print(
                     f"[boardFactory] Warning: tile file '{fileName}' not found for property '{name}', "
                     f"using NULL tile."
                 )
-                filePath = os.path.join(tilesDir, nullTileFile)
+                filePath = os.path.join(tilesDir, f"{nullTileFile}_{rotation}.svg")
         else:
-            filePath = os.path.join(tilesDir, nullTileFile)
+            filePath = os.path.join(tilesDir, f"{nullTileFile}_{rotation}.svg")
 
         # === 🔧 FIX: reference SVGs using '../casillas/' relative path ===
         relPath = f"../casillas/{os.path.basename(filePath)}"
 
-        rotation = computeRotation(row, col, size)
         cell = TileCell(
             imagePath=relPath.replace("\\", "/"),
             rotation=rotation,
@@ -243,7 +244,7 @@ def createRingCells(
 
 def renderTileCell(cell: TileCell) -> str:
     alt = cell.name or "Empty"
-    rotationClass = f"rot-{cell.rotation}"
+    rotationClass = f"rot-{0}"
     laneClass = f"lane-{cell.lane}"
     return (
         f'<img src="{cell.imagePath}" alt="{alt}" '

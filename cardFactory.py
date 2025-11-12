@@ -48,48 +48,56 @@ def generar_casilla(propiedad):
     border_color = colors["borderBlack"]
     top_color = colors[propiedad.color]  # Usamos el color de la propiedad
 
-    # Si la propiedad es de tipo cuadrado (posicion == 2), hacer casilla cuadrada
-    if propiedad.posicion == 1:
-        size_width = "150px"
-        size_height = "225px"  # 1.5 veces el tamaño de la casilla regular
-    else:
-        size_width = "225px"
-        size_height = "225px"  # Casilla cuadrada
+    # Canvas de tamaño fijo 225x225
+    size_width = 225  # Canvas de 225x225 para todos
+    size_height = 225
 
-    dwg = svgwrite.Drawing(f'repo/casillas/casilla_{propiedad.nombre}.svg', profile='full', size=(size_width, size_height))
+    # Generar las 4 versiones rotadas
+    for angle in [0, 90, 180, 270]:
+        # Crear el dibujo con un canvas cuadrado de 225x225
+        dwg = svgwrite.Drawing(f'repo/casillas/casilla_{propiedad.nombre}_{angle}.svg', profile='full', size=(f"{size_width}px", f"{size_height}px"))
+        
+        # Incluir la fuente desde el archivo de estilo CSS
+        kabel = get_font()
+        dwg.add(dwg.style(f"""
+        @font-face {{
+            font-family: 'KabelHeavy';
+            src: url('data:font/ttf;base64,{kabel}') format('truetype');
+        }}
+        * {{
+            font-family: 'KabelHeavy', sans-serif;
+        }}
+        """))
 
-    # Incluir la fuente desde el archivo de estilo CSS
-    kabel = get_font()
-    dwg.add(dwg.style(f"""
-    @font-face {{
-        font-family: 'KabelHeavy';
-        src: url('data:font/ttf;base64,{kabel}') format('truetype');
-    }}
-    * {{
-        font-family: 'KabelHeavy', sans-serif;
-    }}
-    """))
+        # Crear un grupo para rotar todos los elementos
+        group = dwg.g()
 
-    # Fondo de la casilla
-    dwg.add(dwg.rect(insert=(0, 0), size=(size_width, size_height), fill=color_fondo, stroke=border_color, stroke_width=4))
+        # Fondo de la casilla (ubicado en la parte superior izquierda del canvas)
+        group.add(dwg.rect(insert=(0, 0), size=(f"{size_width}px", f"{size_height}px"), fill=color_fondo, stroke=border_color, stroke_width=4))
 
-    if propiedad.posicion == 1:
-        # Color superior con borde
-        dwg.add(dwg.rect(insert=(0, 0), size=(size_width, "30px"), fill=top_color, stroke=border_color, stroke_width=2))
-        # Nombre de la propiedad (centrado en la casilla)
-        dwg.add(dwg.text(propiedad.nombre.upper(), insert=("75px", "20px"), font_size="12px", font_family="KabelHeavy", fill="white", text_anchor="middle"))
-    elif propiedad.posicion == 2:
-        # Borde superior y lateral con borde (cubriendo tanto arriba como a la izquierda)
-        dwg.add(dwg.rect(insert=(0, 0), size=("30px", size_height), fill=top_color, stroke=border_color, stroke_width=2))  # Parte lateral izquierda
-        dwg.add(dwg.rect(insert=(0, 0), size=(size_width, "30px"), fill=top_color, stroke=border_color, stroke_width=2))  # Parte superior
-        # Nombre de la propiedad (centrado en la casilla)
-        dwg.add(dwg.text(propiedad.nombre.upper(), insert=("112px", "20px"), font_size="12px", font_family="KabelHeavy", fill="white", text_anchor="middle"))
+        if propiedad.posicion == 1:
+            # Color superior con borde
+            group.add(dwg.rect(insert=(0, 0), size=(f"{size_width}px", "30px"), fill=top_color, stroke=border_color, stroke_width=2))
+            # Nombre de la propiedad (centrado en la casilla)
+            group.add(dwg.text(propiedad.nombre.upper(), insert=("112px", "20px"), font_size="12px", font_family="KabelHeavy", fill="white", text_anchor="middle"))
+        elif propiedad.posicion == 2:
+            # Borde superior y lateral con borde (cubriendo tanto arriba como a la izquierda)
+            group.add(dwg.rect(insert=(0, 0), size=("30px", f"{size_height}px"), fill=top_color, stroke=border_color, stroke_width=2))  # Parte lateral izquierda
+            group.add(dwg.rect(insert=(0, 0), size=(f"{size_width}px", "30px"), fill=top_color, stroke=border_color, stroke_width=2))  # Parte superior
+            # Nombre de la propiedad (centrado en la casilla)
+            group.add(dwg.text(propiedad.nombre.upper(), insert=("112px", "20px"), font_size="12px", font_family="KabelHeavy", fill="white", text_anchor="middle"))
 
-    # Precio en la parte inferior
-    dwg.add(dwg.text(f"M{propiedad.precio}", insert=("75px", "205px"), font_size="14px", font_family="KabelHeavy", fill="black", text_anchor="middle"))
+        # Precio en la parte inferior
+        group.add(dwg.text(f"M{propiedad.precio}", insert=("112px", "205px"), font_size="14px", font_family="KabelHeavy", fill="black", text_anchor="middle"))
 
-    # Guardar la casilla
-    dwg.save()
+        # Aplicar rotación con ajuste para que el centro de la rotación sea el centro del canvas
+        group.rotate(angle, center=(size_width / 2, size_height / 2))
+
+        # Añadir el grupo al dibujo
+        dwg.add(group)
+
+        # Guardar la casilla rotada
+        dwg.save()
 
 # Función para generar la tarjeta de propiedad
 def generar_tarjeta(propiedad):
