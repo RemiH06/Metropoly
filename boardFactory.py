@@ -201,23 +201,37 @@ def createRingCells(
     for row, col in coords:
         cornerFlag = isCorner(row, col, size)
         name = None
-        rotation = computeRotation(row, col, size)
 
+        # Asignar la rotación según la celda
         if cornerFlag:
+            # Esquinas: asignamos las rotaciones 0°, 90°, 180° o 270° según la posición
+            if row == 0 and col == 0:  # Esquina superior izquierda
+                rotation = 0
+            elif row == 0 and col == size - 1:  # Esquina superior derecha
+                rotation = 90
+            elif row == size - 1 and col == size - 1:  # Esquina inferior derecha
+                rotation = 180
+            elif row == size - 1 and col == 0:  # Esquina inferior izquierda
+                rotation = 270
             try:
                 name = next(cornerIter)
             except StopIteration:
                 name = None
         else:
+            # Celdas no esquinas: asignamos rotación según la posición
+            rotation = computeRotation(row, col, size)
             try:
                 name = next(laneIter)
             except StopIteration:
                 name = None
 
+        # Si hay nombre, generamos el archivo de la casilla con el postfijo de la rotación
         if name:
             fileName = f"casilla_{name}_{rotation}.svg"
-            print(fileName)
+            print(f"Generando archivo para: {fileName}")
             filePath = os.path.join(tilesDir, fileName)
+
+            # Si no existe el archivo, usamos el archivo NULL
             if not os.path.exists(filePath):
                 print(
                     f"[boardFactory] Warning: tile file '{fileName}' not found for property '{name}', "
@@ -227,9 +241,10 @@ def createRingCells(
         else:
             filePath = os.path.join(tilesDir, f"{nullTileFile}_{rotation}.svg")
 
-        # === 🔧 FIX: reference SVGs using '../casillas/' relative path ===
+        # === 🔧 FIX: referencia las imágenes usando la ruta relativa '../casillas/' ===
         relPath = f"../casillas/{os.path.basename(filePath)}"
 
+        # Crear el objeto de la celda
         cell = TileCell(
             imagePath=relPath.replace("\\", "/"),
             rotation=rotation,
