@@ -1,16 +1,3 @@
-
-
-{
-    "nombre": "Nombre",
-    "color": "red",
-    "carril": 1,
-    "imagen": "img.png",
-    "precio": 1, 
-    "renta_base": 100,
-    "tipo": 1
-    "posicion": 1
-}
-
 nombre: en string
 color: uno de los disponibles en palette
 carril: 1 para azul, 2 para amarillo y 3 para rojo (el fondo se ajusta automáticamente a basicBG para 1, yellowBG para 2 y redBG para 3. Agregué esos colores manualmente)

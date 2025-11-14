@@ -1,5 +1,3 @@
-# boardFactory.py
-
 import os
 import json
 import math
