@@ -88,7 +88,7 @@ def generar_casilla(propiedad):
             group.add(dwg.text(propiedad.nombre.upper(), insert=("112px", "20px"), font_size="12px", font_family="KabelHeavy", fill="white", text_anchor="middle"))
 
         # Precio en la parte inferior
-        group.add(dwg.text(f"M{propiedad.precio}", insert=("112px", "205px"), font_size="14px", font_family="KabelHeavy", fill="black", text_anchor="middle"))
+        group.add(dwg.text(f"{propiedad.precio}M", insert=("112px", "205px"), font_size="14px", font_family="KabelHeavy", fill="black", text_anchor="middle"))
 
         # Aplicar rotación con ajuste para que el centro de la rotación sea el centro del canvas
         group.rotate(angle, center=(size_width / 2, size_height / 2))

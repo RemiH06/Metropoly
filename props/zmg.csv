@@ -1,0 +1,97 @@
+﻿nombre,color,carril,imagen,precio,renta_base,tipo,posicion
+Chapalita,blue,1,tile.png,0,0,1,1
+Providencia,blue,1,tile.png,0,0,1,1
+Americana,blue,1,tile.png,0,0,1,1
+Santa Tere,blue,1,tile.png,0,0,1,1
+Arcos Vallarta,blue,1,tile.png,0,0,1,1
+Country Club,blue,1,tile.png,0,0,1,1
+Jardines del Bosque,blue,1,tile.png,0,0,1,1
+Puerta de Hierro,blue,1,tile.png,0,0,1,1
+Andares,blue,1,tile.png,0,0,1,1
+Colonia Seattle,blue,1,tile.png,0,0,1,1
+Lomas de Atemajac,blue,1,tile.png,0,0,1,1
+Ciudad del Sol,blue,1,tile.png,0,0,1,1
+La Estancia,blue,1,tile.png,0,0,1,1
+Altamira,blue,1,tile.png,0,0,1,1
+Real Vallarta,blue,1,tile.png,0,0,1,1
+La Calma,blue,1,tile.png,0,0,1,1
+Monraz,blue,1,tile.png,0,0,1,1
+Ladrón de Guevara,blue,1,tile.png,0,0,1,1
+Colinas de San Javier,blue,1,tile.png,0,0,1,1
+Colonia Moderna,blue,1,tile.png,0,0,1,1
+Estación Centro (Línea 1),blue,1,tile.png,0,0,1,1
+Estación Zapopan Centro,blue,1,tile.png,0,0,1,1
+Estación Tetlán,blue,1,tile.png,0,0,1,1
+Estación Tlaquepaque,blue,1,tile.png,0,0,1,1
+Aeropuerto Internacional de Guadalajara (GDL),blue,1,tile.png,0,0,1,1
+Aeropuerto de Zapopan,blue,1,tile.png,0,0,1,1
+Aeropuerto de Toluquilla,blue,1,tile.png,0,0,1,1
+Helipuerto Puerta de Hierro,blue,1,tile.png,0,0,1,1
+Fortuna de Chapultepec,blue,1,tile.png,0,0,1,1
+Fortuna de Andares,blue,1,tile.png,0,0,1,1
+Fortuna del Centro Histórico,blue,1,tile.png,0,0,1,1
+Fortuna del Estadio Jalisco,blue,1,tile.png,0,0,1,1
+Caseta de Zapotlanejo,blue,1,tile.png,0,0,2,1
+Hospital Civil de Guadalajara,blue,1,tile.png,0,0,2,1
+SIAPA,blue,1,tile.png,0,0,2,1
+Telcel Jalisco,blue,1,tile.png,0,0,2,1
+Plaza del Sol,yellow,2,tile.png,0,0,1,1
+Galerías Guadalajara,yellow,2,tile.png,0,0,1,1
+Midtown Jalisco,yellow,2,tile.png,0,0,1,1
+Mercado San Juan de Dios,yellow,2,tile.png,0,0,1,1
+Plaza Patria,yellow,2,tile.png,0,0,1,1
+Landmark,yellow,2,tile.png,0,0,1,1
+Plaza Andares,yellow,2,tile.png,0,0,1,1
+Templo Expiatorio,yellow,2,tile.png,0,0,1,1
+Mercado de Atemajac,yellow,2,tile.png,0,0,1,1
+Plaza Fórum Tlaquepaque,yellow,2,tile.png,0,0,1,1
+Mercado de Abastos,yellow,2,tile.png,0,0,1,1
+Plaza Bugambilias,yellow,2,tile.png,0,0,1,1
+Plaza Ciudadela,yellow,2,tile.png,0,0,1,1
+Tianguis Cultural,yellow,2,tile.png,0,0,1,1
+Glorieta Chapalita,yellow,2,tile.png,0,0,1,1
+Mercado Libertad,yellow,2,tile.png,0,0,1,1
+El Salto,yellow,2,tile.png,0,0,1,1
+Tonalá,yellow,2,tile.png,0,0,1,1
+Tlaquepaque,yellow,2,tile.png,0,0,1,1
+Tesistán,yellow,2,tile.png,0,0,1,1
+Twin Lions,yellow,2,tile.png,0,0,1,1
+Casino Majestic,yellow,2,tile.png,0,0,1,1
+PlayCity,yellow,2,tile.png,0,0,1,1
+Caliente,yellow,2,tile.png,0,0,1,1
+Av. López Mateos,yellow,2,tile.png,0,0,1,1
+Av. Vallarta,yellow,2,tile.png,0,0,1,1
+Av. Patria,yellow,2,tile.png,0,0,1,1
+Av. Hidalgo,yellow,2,tile.png,0,0,1,1
+Av. Juárez,yellow,2,tile.png,0,0,1,1
+Periférico Norte,yellow,2,tile.png,0,0,1,1
+Lázaro Cárdenas,yellow,2,tile.png,0,0,1,1
+Niños Héroes,yellow,2,tile.png,0,0,1,1
+Aeropuerto GDL,yellow,2,tile.png,0,0,1,1
+Andares,yellow,2,tile.png,0,0,1,1
+San Juan de Dios,yellow,2,tile.png,0,0,1,1
+Centro Histórico,yellow,2,tile.png,0,0,1,1
+Fortuna de los Mercados,yellow,2,tile.png,0,0,1,1
+Fortuna de las Avenidas,yellow,2,tile.png,0,0,1,1
+Fortuna de la Suerte,yellow,2,tile.png,0,0,1,1
+Fortuna de la Noche,yellow,2,tile.png,0,0,1,1
+Megacable Guadalajara,yellow,2,tile.png,0,0,2,1
+UdeG,yellow,2,tile.png,0,0,2,1
+Palacio Municipal de Guadalajara,yellow,2,tile.png,0,0,2,1
+CFE Jalisco,yellow,2,tile.png,0,0,2,1
+Fortuna del Colapso del Periférico,red,3,tile.png,0,0,1,1
+Fortuna del Tráfico de López Mateos,red,3,tile.png,0,0,1,1
+Fortuna de la Lluvia en la Glorieta,red,3,tile.png,0,0,1,1
+Fortuna de la Marcha del Centro,red,3,tile.png,0,0,1,1
+Fortuna del Desvío del Tren Ligero,red,3,tile.png,0,0,1,1
+Fortuna del Parquímetro,red,3,tile.png,0,0,1,1
+Fortuna del Multón,red,3,tile.png,0,0,1,1
+Fortuna del Asalto,red,3,tile.png,0,0,1,1
+Fortuna del Gasolinazo,red,3,tile.png,0,0,1,1
+Fortuna de la Manifestación,red,3,tile.png,0,0,1,1
+Fortuna de la Inspección Municipal,red,3,tile.png,0,0,1,1
+Fortuna del Apagón,red,3,tile.png,0,0,1,1
+Puente Grande,red,3,tile.png,0,0,2,1
+Gas Natural del Occidente,red,3,tile.png,0,0,2,1
+Caabsa Eagle,red,3,tile.png,0,0,2,1
+Pemex López Mateos,red,3,tile.png,0,0,2,1
