@@ -1,0 +1,65 @@
+{
+  "board_name": "Metropoly ZMG",
+
+  "salary": 5000000,
+
+  "lanes": {
+    "blue":   { "canonical_perimeter": 64 },
+    "yellow": { "canonical_perimeter": 60 },
+    "red":    { "canonical_perimeter": 56 }
+  },
+
+  "tile": {
+    "width_px":          150,
+    "aspect_ratio":      1.5,
+    "corner_multiplier": 1.5,
+    "color_band_pct":    15,
+    "name_top_pct":      26,
+    "price_bottom_pct":  8,
+    "font_min":          "9px",
+    "font_pref":         "1.1vw",
+    "font_max":          "13px",
+    "border_radius_px":  0
+  },
+
+  "card": {
+    "width_px":  200,
+    "height_px": 350,
+    "color_band_px": 48,
+    "font_title": "11px",
+    "font_name":  "17px",
+    "font_body":  "12px"
+  },
+
+  "scraper": {
+    "images_per_tile": 1,
+    "headless":        true,
+    "min_resolution":  [80, 80],
+    "max_resolution":  [3840, 2160],
+    "max_missed":      5
+  },
+
+  "currency": {
+    "money_denominations": [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 5000000],
+    "gold_denominations":  [1, 2, 5, 10, 20, 50],
+    "gold_to_win":         100
+  },
+
+  "tile_types": {
+    "1":  "propiedad",
+    "2":  "empresa",
+    "3":  "tren",
+    "4":  "aeropuerto",
+    "5":  "loteria",
+    "6":  "mina",
+    "7":  "casino",
+    "8":  "negocio",
+    "9":  "taxi",
+    "10": "fortuna",
+    "11": "carcel",
+    "12": "hospital",
+    "13": "salida",
+    "14": "casa_de_cambio",
+    "15": "dia_de_paga"
+  }
+}
