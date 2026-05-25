@@ -208,99 +208,144 @@ def createRingCells(
 # RENDER — INLINE HTML
 # =========================
 
-def renderTileCell(cell: TileCell) -> str:
+def renderTileCell(cell: TileCell, cell_class: str = "") -> str:
     """
-    Lee el HTML de la casilla y lo inlinea en el <td>.
+    Inlinea el HTML de una casilla dentro del <td> del tablero.
 
-    Técnica de rotación sin recorte (double-wrapper):
-    ─────────────────────────────────────────────────
-    El <td> tiene dimensiones fijas (p.ej. 150×225 para lados verticales).
-    Para rotar 90°/270° el contenido de la casilla (que internamente siempre
-    se diseña como portrait: ancho < alto) sin que se recorte, usamos:
+    Estrategia de rotación sin recorte
+    ────────────────────────────────────
+    Cada casilla se diseña siempre en orientación portrait (TILE_W × TILE_H,
+    con TILE_W < TILE_H). Al incrustarla en el tablero hay dos tipos de <td>:
 
-        outer  → tamaño del <td>  (overflow:hidden, position:relative)
-        inner  → tamaño INVERTIDO para 90/270 (position:absolute, centrado)
-                 sobre el inner se aplica el rotate()
-        content → el HTML de la casilla al 100% del inner
+      rot 0 / 180  →  <td> es .horizontal: TILE_W × TILE_H  (portrait = encaja directo)
+      rot 90 / 270 →  <td> es .vertical:   TILE_H × TILE_W  (landscape)
 
-    Para 0°/180° no hace falta invertir dimensiones.
-    Las dimensiones reales del <td> las conocemos según la clase:
-        .corner     → 225×225  (cuadrado, rotación no importa)
-        .horizontal → 150×225  (W×H en el DOM)
-        .vertical   → 225×150  (W×H en el DOM)
-        normal      → 150×150
+    Para el caso landscape usamos el truco clásico de doble wrapper:
+      1. outer  (TILE_H × TILE_W)  — tamaño real del <td>, overflow:hidden
+      2. canvas (TILE_W × TILE_H)  — tamaño portrait, centrado absolutamente
+                                     dentro del outer, luego rotado
+      El canvas rotado 90° ocupa visualmente TILE_H × TILE_W → llena el outer.
+
+    CSS scoping
+    ────────────
+    Extraemos el <style> de la casilla y reemplazamos cada selector de clase
+    (.tile, .tile__band, …) con un prefijo único (.t{uid} .tile, …) para que
+    no colisione con otras casillas inlineadas en el mismo documento.
     """
     import re
 
-    # ── Leer y extraer body + style del HTML de la casilla ──────────────────
+    TILE_W = 150   # ancho portrait (px)
+    TILE_H = 225   # alto  portrait (px)
+
+    uid = abs(hash(cell.htmlPath)) % 10**8
+
+    # ── Leer HTML de la casilla ──────────────────────────────────────────────
     if os.path.exists(cell.htmlPath):
         with open(cell.htmlPath, "r", encoding="utf-8") as f:
             raw = f.read()
+
         body_match  = re.search(r"<body[^>]*>(.*?)</body>",   raw, re.DOTALL | re.IGNORECASE)
         style_match = re.search(r"<style[^>]*>(.*?)</style>", raw, re.DOTALL | re.IGNORECASE)
-        body_html   = body_match.group(1).strip()  if body_match  else raw
-        style_html  = style_match.group(1).strip() if style_match else ""
-        uid         = abs(hash(cell.htmlPath)) % 10**8
-        scoped_style = f"<style>#{uid}-inner {{ {style_html} }}</style>"
-        # re-scope el body al id del inner para que los selectores no colisionen
-        body_html_scoped = re.sub(
-            r'(class="tile")',
-            rf'class="tile" data-uid="{uid}"',
-            body_html,
+        body_html  = body_match.group(1).strip()  if body_match  else raw
+        style_raw  = style_match.group(1).strip() if style_match else ""
+
+        # Scopear cada regla CSS: ".tile { … }" → ".s{uid} .tile { … }"
+        # Reemplaza selectores que empiezan con "." o con elemento conocido
+        def scope_css(css: str, prefix: str) -> str:
+            # Divide en bloques "selector { … }"
+            result = []
+            for block in re.split(r'(?<=\})', css):
+                block = block.strip()
+                if not block:
+                    continue
+                # Encuentra el { que abre el bloque de declaraciones
+                brace = block.find('{')
+                if brace == -1:
+                    result.append(block)
+                    continue
+                selectors_str = block[:brace].strip()
+                declarations  = block[brace:]
+                # Ignora reglas @font-face, @keyframes, etc.
+                if selectors_str.startswith('@'):
+                    result.append(block)
+                    continue
+                # Ignora selectores que aplican a html/body (no los queremos)
+                new_sels = []
+                for sel in selectors_str.split(','):
+                    sel = sel.strip()
+                    if not sel:
+                        continue
+                    if sel in ('html', 'body', 'html body', '*'):
+                        continue   # descartamos reglas de reset globales
+                    new_sels.append(f"{prefix} {sel}")
+                if new_sels:
+                    result.append(f"{', '.join(new_sels)} {declarations}")
+            return '\n'.join(result)
+
+        prefix     = f".s{uid}"
+        scoped_css = scope_css(style_raw, prefix)
+        scoped_style = f"<style>{scoped_css}</style>"
+
+        # Añadir clase de scoping al div raíz (.tile)
+        body_scoped = body_html.replace(
+            'class="tile"', f'class="tile {prefix[1:]}"', 1
         )
-        inner_content = scoped_style + body_html_scoped
+        canvas_content = scoped_style + body_scoped
+
     else:
         lane_colors = {"blue": "#CDE6D0", "yellow": "#e6e6cd", "red": "#e6cdcd"}
         bg = lane_colors.get(cell.lane, "#eee")
-        inner_content = f'<div style="width:100%;height:100%;background:{bg};"></div>'
-        uid = 0
+        canvas_content = f'<div style="width:100%;height:100%;background:{bg};"></div>'
 
     rot = cell.rotation
 
-    # ── Dimensiones del <td> según posición en el tablero ───────────────────
-    # La casilla se diseña siempre como portrait (ancho < alto).
-    # Para lados top/bottom (rot 0/180): el td es horizontal (W < H en pantalla
-    # pero la casilla entra derecha).
-    # Para lados left/right (rot 90/270): el td es vertical (W > H), hay que
-    # invertir las dimensiones del inner antes de rotar.
+    # ── Geometría según clase de celda ───────────────────────────────────────
+    # Todas las casillas se diseñan en portrait: TILE_W × TILE_H (150 × 225).
+    # El td puede ser corner (225×225), horizontal (150×225) o vertical (225×150).
+    # Usamos un canvas que tiene las dimensiones del td, y dentro escalamos/
+    # rotamos el tile portrait para que llene ese canvas exactamente.
 
-    if rot in (90, 270):
-        # El td es .vertical → 225px ancho × 150px alto en el DOM.
-        # La casilla-portrait mide 150×225. Para que quepa sin recorte:
-        #   inner: 225px × 150px  →  rotate(90/270)  →  ocupa 150×225 visual
-        # pero eso sigue siendo igual al td (225W × 150H). Funciona.
-        td_w, td_h   = 225, 150   # dimensiones reales del <td>
-        inner_w, inner_h = td_h, td_w  # invertido: 150×225
-        # Centramos el inner dentro del td
-        offset_x = (td_w - inner_w) // 2   # (225-150)/2 = 37.5  → 0 si cuadrado
-        offset_y = (td_h - inner_h) // 2   # (150-225)/2 = -37.5 → corregido con translate
-        translate = f"translate({(td_w - inner_w) / 2}px, {(td_h - inner_h) / 2}px) rotate({rot}deg)"
+    CORNER = TILE_H   # 225 — lado del td cuadrado de esquina
+
+    if cell_class == "corner":
+        # td: 225×225. Canvas también 225×225 — el tile (width/height 100%)
+        # lo llena directamente. Solo rotamos.
+        outer_w, outer_h   = CORNER, CORNER        # 225×225
+        canvas_w, canvas_h = CORNER, CORNER        # 225×225
+        transform = f"rotate({rot}deg)"
+    elif rot in (90, 270):
+        # td .vertical: 225w × 150h en el DOM.
+        # Canvas portrait 150×225 centrado y rotado 90/270 → ocupa 225×150.
+        outer_w, outer_h   = TILE_H, TILE_W        # 225×150
+        canvas_w, canvas_h = TILE_W, TILE_H        # 150×225
+        cx = (outer_w - canvas_w) / 2              #  37.5
+        cy = (outer_h - canvas_h) / 2              # -37.5
+        transform = f"translate({cx}px, {cy}px) rotate({rot}deg)"
     else:
-        # rot 0 / 180: td es .horizontal → 150px ancho × 225px alto en el DOM
-        td_w, td_h   = 150, 225
-        inner_w, inner_h = td_w, td_h   # mismo tamaño
-        translate = f"rotate({rot}deg)"
-
-    inner_style = (
-        f"position:absolute;"
-        f"width:{inner_w}px; height:{inner_h}px;"
-        f"top:50%; left:50%;"
-        f"margin-top:-{inner_h//2}px; margin-left:-{inner_w//2}px;"
-        f"transform: {translate};"
-        f"transform-origin: center center;"
-        f"overflow:hidden;"
-    )
+        # td .horizontal: 150w × 225h — portrait encaja exactamente.
+        outer_w, outer_h   = TILE_W, TILE_H        # 150×225
+        canvas_w, canvas_h = TILE_W, TILE_H
+        transform = f"rotate({rot}deg)"
 
     outer_style = (
-        "position:absolute; inset:0;"
-        "overflow:hidden;"
+        f"position:absolute; inset:0;"
+        f"width:{outer_w}px; height:{outer_h}px;"
+        f"overflow:hidden;"
+    )
+    canvas_style = (
+        f"position:absolute;"
+        f"width:{canvas_w}px; height:{canvas_h}px;"
+        f"top:0; left:0;"
+        f"transform:{transform};"
+        f"transform-origin:center center;"
+        f"overflow:hidden;"
     )
 
     return (
         f'<div class="tile-outer lane-{cell.lane}" style="{outer_style}">'
-        f'  <div id="{uid}-inner" style="{inner_style}">'
-        f'    {inner_content}'
-        f'  </div>'
+        f'<div class="s{uid}" style="{canvas_style}">'
+        f'{canvas_content}'
+        f'</div>'
         f'</div>'
     )
 
@@ -309,6 +354,50 @@ def renderTileCell(cell: TileCell) -> str:
 # TABLE BUILDER
 # =========================
 
+def _cell_class(row: int, col: int, boardSize: int) -> str:
+    """
+    Clasifica cada celda del tablero.
+
+    Las 4 esquinas del tablero son bloques 3×3 (uno por anillo concéntrico).
+    Todas las celdas dentro de esos bloques son 'corner' (225×225 cuadradas),
+    tengan o no contenido real.
+
+    Fuera de los bloques de esquina, los bordes son 'horizontal' o 'vertical'
+    según en qué lado del anillo estén. El interior es 'inner-empty'.
+    """
+    L  = boardSize - 1
+    N  = 3   # número de anillos → tamaño del bloque de esquina
+
+    # ── Bloques de esquina 3×3 ───────────────────────────────────────────────
+    in_top    = row < N
+    in_bottom = row > L - N
+    in_left   = col < N
+    in_right  = col > L - N
+
+    if (in_top or in_bottom) and (in_left or in_right):
+        return "corner"
+
+    # ── Bordes del tablero (azul, exterior) ─────────────────────────────────
+    if row == 0 or row == L:
+        return "horizontal"
+    if col == 0 or col == L:
+        return "vertical"
+
+    # ── Bordes anillo amarillo (offset 1) ────────────────────────────────────
+    if row == 1 or row == L - 1:
+        return "horizontal"
+    if col == 1 or col == L - 1:
+        return "vertical"
+
+    # ── Bordes anillo rojo (offset 2) ────────────────────────────────────────
+    if row == 2 or row == L - 2:
+        return "horizontal"
+    if col == 2 or col == L - 2:
+        return "vertical"
+
+    return "inner-empty"
+
+
 def buildBoardTable(
     boardSize:  int,
     boardCells: Dict[Tuple[int, int], TileCell],
@@ -316,30 +405,16 @@ def buildBoardTable(
     htmlParts: List[str] = []
     htmlParts.append('<table class="board">')
 
-    last = boardSize - 1
-
     for row in range(boardSize):
         htmlParts.append("<tr>")
-
-        if row < 3 or row >= boardSize - 3:
-            for col in range(boardSize):
-                cell = boardCells.get((row, col))
-                classes = ["corner"] if (col < 3 or col >= boardSize - 3) else ["horizontal"]
-                classAttr = f' class="{" ".join(classes)}"'
-                if cell:
-                    htmlParts.append(f"<td{classAttr}>{renderTileCell(cell)}</td>")
-                else:
-                    htmlParts.append(f"<td{classAttr}></td>")
-        else:
-            for col in range(boardSize):
-                cell = boardCells.get((row, col))
-                classes = ["vertical"] if (col < 3 or col >= boardSize - 3) else ["inner-empty"]
-                classAttr = f' class="{" ".join(classes)}"'
-                if cell:
-                    htmlParts.append(f"<td{classAttr}>{renderTileCell(cell)}</td>")
-                else:
-                    htmlParts.append(f"<td{classAttr}></td>")
-
+        for col in range(boardSize):
+            cell      = boardCells.get((row, col))
+            cls       = _cell_class(row, col, boardSize)
+            classAttr = f' class="{cls}"'
+            if cell:
+                htmlParts.append(f"<td{classAttr}>{renderTileCell(cell, cls)}</td>")
+            else:
+                htmlParts.append(f"<td{classAttr}></td>")
         htmlParts.append("</tr>")
 
     htmlParts.append("</table>")
