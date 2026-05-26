@@ -508,7 +508,16 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
     lane_bg = {1: "basicBG", 2: "yellowBG", 3: "redBG"}
     bg_color     = colors[lane_bg.get(propiedad.carril, "basicBG")]
     border_color = colors["borderBlack"]
-    band_color   = colors.get(propiedad.color, colors["blue"])
+
+    # Las empresas (tipo 2) van en esquinas — sin franja de color de grupo
+    # Las demás casillas muestran franja con el color de su grupo
+    is_corner_type = propiedad.tipo == 2
+    if is_corner_type:
+        band_color = bg_color   # franja del mismo color que el fondo = invisible
+        effective_band_pct = 0
+    else:
+        band_color = colors.get(propiedad.color, colors["blue"])
+        effective_band_pct = band_pct
 
     # Imagen de fondo (base64 para portabilidad al imprimir)
     img_path = _get_image_path(propiedad.nombre, cfg)
@@ -582,9 +591,9 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
     .tile__band {{
         position: absolute;
         top: 0; left: 0; right: 0;
-        height: {band_pct}%;
+        height: {effective_band_pct}%;
         background-color: {band_color};
-        border-bottom: 1.5px solid {border_color};
+        {f'border-bottom: 1.5px solid {border_color};' if not is_corner_type else ''}
         z-index: 2;
     }}
 
@@ -599,7 +608,7 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
     /* Nombre de la casilla */
     .tile__name {{
         position: absolute;
-        top: {name_pct}%;
+        top: {5 if is_corner_type else name_pct}%;
         left: 4%; right: 4%;
         text-align: center;
         font-size: 11px;
@@ -652,8 +661,9 @@ _TIPO_DETALLE = {
         ("Renta base",       f"${int(float(p.renta_base)):,}"),
         ("Con 1 casa",       f"${int(float(p.renta_base) * 2):,}"),
         ("Con 2 casas",      f"${int(float(p.renta_base) * 4):,}"),
-        ("Con 3 casas",      f"${int(float(p.renta_base) * 6):,}"),
-        ("Con hotel",        f"${int(float(p.renta_base) * 10):,}"),
+        ("Con 3 casas",      f"${int(float(p.renta_base) * 8):,}"),
+        ("Con 4 casas",      f"${int(float(p.renta_base) * 16):,}"),
+        ("Con hotel",        f"${int(float(p.renta_base) * 32):,}"),
         ("Precio hipoteca",  f"${int(float(p.precio) // 2):,}"),
     ],
 
