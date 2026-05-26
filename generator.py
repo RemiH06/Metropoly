@@ -71,7 +71,7 @@ def cargar_propiedades_generico(path: str):
 
 blueLane = [
     "Chapalita", "Providencia", "Americana", "Santa Tere", "Arcos Vallarta",
-    "Country Club", "Jardines del Bosque", "Puerta de Hierro", "Andares",
+    "Country Club", "Jardines del Bosque", "Puerta de Hierro",
     "Colonia Seattle", "Lomas de Atemajac", "Ciudad del Sol", "La Estancia",
     "Altamira", "Real Vallarta", "La Calma", "Monraz", "Ladrón de Guevara",
     "Colinas de San Javier", "Colonia Moderna",
@@ -97,7 +97,7 @@ redLane = [
 ]
 
 blueCorners = [
-    "Caseta de Zapotlanejo", "Hospital Civil de Guadalajara", "SIAPA", "Telcel Jalisco",
+    "Caseta de Zapotlanejo", "IMSS Jalisco", "SIAPA", "Telcel Jalisco",
 ]
 
 yellowCorners = [
@@ -127,22 +127,52 @@ def main():
         "--output", default=OUTPUT_FILE,
         help=f"Ruta de salida del tablero HTML (default: {OUTPUT_FILE})"
     )
+    parser.add_argument(
+        "--workers", type=int, default=1,
+        help="Número de workers paralelos para scraping (default: 1, recomendado: 2-3)"
+    )
     args = parser.parse_args()
 
     force = args.force
     if force:
         print("[generator] Modo FORCE: se regenerarán todas las casillas y tarjetas.")
 
-    # Carga compartida (evita leer disco N veces)
     cfg    = _load_config()
     colors = _get_colors()
 
     propiedades = cargar_propiedades_generico(args.input)
-    print(f"[generator] {len(propiedades)} propiedades cargadas desde '{args.input}'")
+    total = len(propiedades)
+    print(f"[generator] {total} propiedades cargadas desde '{args.input}'")
 
-    for prop in propiedades:
+    # ── Contadores de progreso thread-safe ───────────────────────────────────
+    import threading
+    lock      = threading.Lock()
+    completed = [0]   # lista mutable para poder modificar desde dentro del closure
+
+    def procesar(prop):
         generar_casilla(prop, force=force, cfg=cfg, colors=colors)
         generar_tarjeta(prop, force=force, cfg=cfg, colors=colors)
+        with lock:
+            completed[0] += 1
+            remaining = total - completed[0]
+            print(f"[generator] [{completed[0]}/{total}] {prop.nombre} — {remaining} restantes")
+
+    # ── Ejecución ─────────────────────────────────────────────────────────────
+    workers = max(1, args.workers)
+    if workers == 1:
+        for prop in propiedades:
+            procesar(prop)
+    else:
+        print(f"[generator] Usando {workers} workers paralelos")
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {executor.submit(procesar, prop): prop for prop in propiedades}
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    prop = futures[future]
+                    print(f"[generator] Error en '{prop.nombre}': {e}")
 
     print("[generator] Generando tablero HTML...")
     saveBoardHtml(

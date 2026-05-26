@@ -30,17 +30,8 @@ import requests
 from PIL import Image
 from bs4 import BeautifulSoup
 
-# ── Selenium (solo se importa si hay que scrapear) ──────────────────────────
-try:
-    from selenium import webdriver as _webdriver
-    from selenium.webdriver.chrome.options import Options as _Options
-    from selenium.webdriver.common.by import By as _By
-    from selenium.webdriver.support.ui import WebDriverWait as _WebDriverWait
-    from selenium.webdriver.support import expected_conditions as _EC
-    from selenium.webdriver.common.keys import Keys as _Keys
-    _SELENIUM_OK = True
-except ImportError:
-    _SELENIUM_OK = False
+# ── Selenium (se importa en tiempo de ejecución dentro de _scrape_images) ───
+_SELENIUM_OK = None   # None = no verificado aún
 
 
 # =============================================================================
@@ -110,94 +101,185 @@ def _scrape_images(nombre: str, n: int = 1, headless: bool = True,
     """
     Scrapea Google Imágenes buscando `nombre`, guarda la primera imagen válida
     en src/img/{safe_nombre}/ y devuelve la ruta absoluta.
-    Devuelve None si falla o si Selenium no está disponible.
+    Devuelve None si falla o si Selenium no está instalado.
     """
-    if not _SELENIUM_OK:
-        print(f"[cardFactory] Selenium no disponible, sin imagen para '{nombre}'.")
+    # Import en tiempo de ejecución para detectar instalaciones posteriores
+    try:
+        from selenium import webdriver as _webdriver
+        from selenium.webdriver.chrome.options import Options as _Options
+        from selenium.webdriver.common.by import By as _By
+        from selenium.webdriver.support.ui import WebDriverWait as _WebDriverWait
+        from selenium.webdriver.support import expected_conditions as _EC
+        from selenium.webdriver.common.keys import Keys as _Keys
+    except ImportError:
+        print(
+            "[cardFactory] Selenium no instalado. Ejecuta:\n"
+            "    pip install selenium\n"
+            "y asegúrate de tener chromedriver en la carpeta webdriver/"
+        )
         return None
 
     safe = _safe_name(nombre)
     save_dir = os.path.join(_IMG_DIR, safe)
     os.makedirs(save_dir, exist_ok=True)
 
-    driver_path = os.path.join(_WEBDRIVER_DIR, _webdriver_exe())
-    if not os.path.isfile(driver_path):
-        # intenta patch automático igual que el repo original
-        try:
-            import patch as _patch
-            _patch.download_lastest_chromedriver()
-        except Exception:
-            pass
-    if not os.path.isfile(driver_path):
-        print(f"[cardFactory] chromedriver no encontrado en {driver_path}.")
-        return None
-
-    url = f"https://www.google.com/search?q={urllib.parse.quote(nombre)}&source=lnms&tbm=isch"
+    url = f"https://www.google.com/search?q={urllib.parse.quote(nombre)}&tbm=isch&hl=es"
     options = _Options()
     if headless:
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-
-    driver = _webdriver.Chrome(
-        service=_webdriver.chrome.service.Service(driver_path),
-        options=options,
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--window-size=1400,1050")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/148.0.0.0 Safari/537.36"
     )
-    driver.set_window_size(1400, 1050)
-    driver.get(url)
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
 
-    image_urls = []
-    count = 0
-    missed = 0
-    time.sleep(2)
+    driver_path = os.path.join(_WEBDRIVER_DIR, _webdriver_exe())
 
+    # Intentar usar webdriver-manager para obtener el driver correcto
+    # automáticamente según la versión de Chrome instalada
     try:
-        first = _WebDriverWait(driver, 10).until(
-            _EC.element_to_be_clickable((_By.CSS_SELECTOR, 'div[jsname="dTDiAc"]'))
-        )
-        first.click()
+        from webdriver_manager.chrome import ChromeDriverManager
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        service = ChromeService(ChromeDriverManager().install())
+    except ImportError:
+        # webdriver-manager no instalado, usar driver manual
+        if not os.path.isfile(driver_path):
+            print(
+                "[cardFactory] chromedriver no encontrado. Instala webdriver-manager:\n"
+                "    pip install webdriver-manager\n"
+                "o coloca chromedriver.exe manualmente en la carpeta webdriver/"
+            )
+            return None
+        service = _webdriver.chrome.service.Service(driver_path)
     except Exception as e:
-        print(f"[cardFactory] No se pudo hacer click en primera imagen: {e}")
-        driver.quit()
+        print(f"[cardFactory] Error configurando chromedriver: {e}")
         return None
 
-    while count < n * 6 and missed < max_missed:
-        try:
-            time.sleep(1)
-            class_names = ["n3VNCb", "iPVvYb", "r48jcc", "pT0Scc"]
-            imgs = [driver.find_elements(_By.CLASS_NAME, c) for c in class_names
-                    if driver.find_elements(_By.CLASS_NAME, c)]
-            imgs = imgs[0] if imgs else []
-            for img in imgs:
-                src = img.get_attribute("src") or ""
-                if "http" in src and "encrypted" not in src:
-                    image_urls.append(src)
-                    count += 1
+    try:
+        driver = _webdriver.Chrome(service=service, options=options)
+    except Exception as e:
+        print(f"[cardFactory] No se pudo iniciar Chrome: {e}")
+        return None
+    driver.set_window_size(1400, 1050)
+    driver.get(url)
+    time.sleep(3)
+
+    # Intentar aceptar cookies si aparece el diálogo
+    try:
+        for btn_text in ["Aceptar todo", "Accept all", "Aceptar"]:
+            btns = driver.find_elements(_By.XPATH, f"//button[contains(., '{btn_text}')]")
+            if btns:
+                btns[0].click()
+                time.sleep(1)
+                break
+    except Exception:
+        pass
+
+    image_urls = []
+
+    # Estrategia 1: extraer URLs de imágenes directamente del HTML/JS de la página
+    # Google incrusta las URLs en atributos data-src y src de las miniaturas
+    def extract_urls_from_page() -> list:
+        found = []
+        # Buscar imágenes con src de http (no data:image)
+        imgs = driver.find_elements(_By.CSS_SELECTOR, "img[src^='http']")
+        for img in imgs:
+            src = img.get_attribute("src") or ""
+            if src.startswith("http") and "encrypted" not in src and "gstatic" not in src:
+                found.append(src)
+        # También buscar en data-src
+        imgs2 = driver.find_elements(_By.CSS_SELECTOR, "img[data-src^='http']")
+        for img in imgs2:
+            src = img.get_attribute("data-src") or ""
+            if src.startswith("http") and "encrypted" not in src:
+                found.append(src)
+        return list(set(found))
+
+    # Estrategia 2: click en miniaturas y extraer imagen de alta resolución
+    def try_click_thumbnails() -> list:
+        found = []
+        # Selectores conocidos de miniaturas en Google Images (varios por compatibilidad)
+        thumb_selectors = [
+            'div[jsname="dTDiAc"]',
+            'div[data-id]',
+            'g-img > img',
+            '.rg_i',
+            'img.YQ4gaf',
+            'img.t0fcAb',
+        ]
+        thumbs = []
+        for sel in thumb_selectors:
+            thumbs = driver.find_elements(_By.CSS_SELECTOR, sel)
+            if thumbs:
+                break
+
+        for thumb in thumbs[:5]:
+            try:
+                driver.execute_script("arguments[0].click();", thumb)
+                time.sleep(1.5)
+                # Buscar imagen de alta res en el panel lateral
+                for hi_sel in ['img.sFlh5c', 'img.r48jcc', 'img.iPVvYb', 'img.n3VNCb']:
+                    hi_imgs = driver.find_elements(_By.CSS_SELECTOR, hi_sel)
+                    for hi in hi_imgs:
+                        src = hi.get_attribute("src") or ""
+                        if src.startswith("http") and "encrypted" not in src and len(src) > 50:
+                            found.append(src)
+                            break
+                if found:
                     break
-            else:
-                missed += 1
-        except Exception:
-            missed += 1
+            except Exception:
+                continue
+        return found
+
+    # Estrategia 3: extraer URLs del page source (Google embebe JSON con URLs)
+    def extract_from_source() -> list:
+        found = []
         try:
-            if count % 3 == 0:
-                driver.find_element(_By.TAG_NAME, "body").send_keys(_Keys.ARROW_RIGHT)
-            driver.find_element(_By.CLASS_NAME, "mye4qd").click()
-            time.sleep(1)
+            src = driver.page_source
+            # Google embebe URLs de imagen en formato ["https://...","width","height"]
+            matches = re.findall(r'"(https://[^"]+\.(?:jpg|jpeg|png|webp))"', src)
+            for m in matches:
+                if "encrypted" not in m and "gstatic" not in m:
+                    found.append(m)
         except Exception:
-            time.sleep(1)
+            pass
+        return list(set(found))
+
+    # Primero intentar clicks para imagen de mayor calidad
+    image_urls = try_click_thumbnails()
+
+    # Si no funcionó, extracción directa de miniaturas
+    if not image_urls:
+        image_urls = extract_urls_from_page()
+
+    # Último recurso: parsear el page source
+    if not image_urls:
+        image_urls = extract_from_source()
+        print(f"[cardFactory] Estrategia page source: {len(image_urls)} URLs")
 
     driver.quit()
     image_urls = list(set(image_urls))
+    print(f"[cardFactory] '{nombre}': {len(image_urls)} URLs encontradas")
+    for i, u in enumerate(image_urls[:3]):
+        print(f"[cardFactory]   [{i}] {u[:80]}")
 
     # Guardar la primera imagen válida
     for idx, img_url in enumerate(image_urls):
         try:
             resp = requests.get(img_url, timeout=5)
             if resp.status_code != 200:
+                print(f"[cardFactory]   URL {idx}: HTTP {resp.status_code}")
                 continue
             with Image.open(io.BytesIO(resp.content)) as pil:
                 w, h = pil.size
                 if w < min_res[0] or h < min_res[1] or w > max_res[0] or h > max_res[1]:
+                    print(f"[cardFactory]   URL {idx}: resolución {w}x{h} fuera de rango")
                     continue
                 o = urlparse(img_url)
                 stem = os.path.splitext(os.path.basename(o.path))[0] or f"img_{idx}"
@@ -207,8 +289,9 @@ def _scrape_images(nombre: str, n: int = 1, headless: bool = True,
                 print(f"[cardFactory] Imagen guardada: {out_path}")
                 return out_path
         except Exception as e:
-            print(f"[cardFactory] Error descargando imagen: {e}")
+            print(f"[cardFactory]   URL {idx}: error — {e}")
 
+    print(f"[cardFactory] '{nombre}': sin imagen válida")
     return None
 
 
@@ -275,26 +358,98 @@ def cargar_propiedades(path: str) -> list[Propiedad]:
 # =============================================================================
 
 _TIPO_LABELS = {
-    1:  ("PROPIEDAD",      "Renta base",  True),
-    2:  ("EMPRESA",        "Efecto empresa", False),
-    3:  ("TREN",           "Efecto tren", False),
-    4:  ("AEROPUERTO",     "Efecto aeropuerto", False),
-    5:  ("LOTERÍA",        "Premio acumulado", False),
-    6:  ("MINA",           "Tira un dado al caer", False),
-    7:  ("CASINO",         "Todos ponen 100K", False),
-    8:  ("NEGOCIO",        "Negocio temporal", True),
-    9:  ("TAXI",           "Uso único", True),
-    10: ("FORTUNA",        "Efecto aleatorio", False),
-    11: ("CÁRCEL",         "3 turnos · 200K/turno", False),
-    12: ("HOSPITAL",       "3 turnos · 300K/turno", False),
-    13: ("SALIDA",         "Cobras 5M al pasar", False),
-    14: ("CASA DE CAMBIO", "Cambia dinero por oro", False),
-    15: ("DÍA DE PAGA",    "50K por fortuna roja", False),
+    1:  ("PROPIEDAD",      "Renta",              True),
+    2:  ("EMPRESA",        "Empresa de servicio", False),
+    3:  ("TREN",           "Transporte",          False),
+    4:  ("AEROPUERTO",     "Transporte aéreo",    False),
+    5:  ("LOTERÍA",        "Premio acumulado",    False),
+    6:  ("MINA",           "Tira un dado",        False),
+    7:  ("CASINO",         "¡Todos al póker!",    False),
+    8:  ("NEGOCIO",        "Negocio temporal",    True),
+    9:  ("TAXI",           "Uso único",           True),
+    10: ("FORTUNA",        "Roba una carta",      False),
+    11: ("CÁRCEL",         "No pases, no cobres", False),
+    12: ("HOSPITAL",       "Reposo obligatorio",  False),
+    13: ("SALIDA",         "¡Cobra al pasar!",    False),
+    14: ("CASA DE CAMBIO", "Dinero ↔ Oro",        False),
+    15: ("DÍA DE PAGA",    "Cobra tus fortunas",  False),
 }
 
 
 def _tipo_info(tipo: int):
     return _TIPO_LABELS.get(tipo, (f"TIPO {tipo}", "", False))
+
+
+# =============================================================================
+# EMPRESA → EFECTO ESPECÍFICO
+# (mapa por nombre para tipo=2, ya que cada empresa tiene reglas distintas)
+# =============================================================================
+
+_EMPRESA_EFECTOS = {
+    # ── Carril azul ──────────────────────────────────────────────────────────
+    "Caseta de Zapotlanejo": [
+        ("Efecto",       "Recibes 1M extra cada vez que alguien pase por la Salida"),
+        ("Al caer",      "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    "IMSS Jalisco": [
+        ("Efecto dueño",  "Recibes todos los gastos médicos ajenos · nunca pagas los tuyos"),
+        ("Al caer",       "300K fijo (tarifa IMSS)"),
+        ("Nota",          "No se puede sacar a alguien del hospital, solo mitigar con efectos rojos"),
+    ],
+    "SIAPA": [
+        ("Efecto",        "Transfiere fortunas entre jugadores cada 5 turnos"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    "Telcel Jalisco": [
+        ("Efecto",        "El dueño puede ver la carta de hasta arriba de cualquier mazo"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    # ── Carril amarillo ──────────────────────────────────────────────────────
+    "Megacable Guadalajara": [
+        ("Efecto",        "El dueño puede revolver cualquier mazo de fortunas una vez por turno"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    "UdeG": [
+        ("Efecto",        "Tirada extra cuando al menos 2 dados caen igual"),
+        ("Costo",         "Sacrifica un turno y paga el precio de la tarjeta"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    "Palacio Municipal de Guadalajara": [
+        ("Efecto",        "Retiene el 10% de todas las transacciones del juego"),
+        ("Al caer",       "Sin costo al caer · solo cobra por transacciones"),
+    ],
+    "CFE Jalisco": [
+        ("Efecto",        "Recupera del banco el 20% del total apostado por mano en el Casino"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    # ── Carril rojo ──────────────────────────────────────────────────────────
+    "Puente Grande": [
+        ("Efecto dueño",  "Recibes todos los gastos de cárcel de los demás jugadores"),
+        ("Si el dueño va a la cárcel", "Pierde la empresa · regresa al gobierno"),
+        ("Al caer",       "200K fijo (tarifa penal)"),
+    ],
+    "Gas Natural del Occidente": [
+        ("Efecto",        "Puedes destruir e inhabilitar 2 casillas convirtiéndolas en lotes vacíos"),
+        ("Nota",          "Las casillas de otros carriles en esa posición siguen activas"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    "Caabsa Eagle": [
+        ("Efecto",        "Coloca un obstáculo en cualquier casilla obligando a cambiar de carril"),
+        ("Nota",          "Los efectos negativos en esa casilla siguen aplicando"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+    "Pemex López Mateos": [
+        ("Efecto",        "Recibes la mitad de todo el dinero que muevan los taxis"),
+        ("Al caer",       "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ],
+}
+
+def _empresa_detalle(nombre: str) -> list:
+    """Devuelve los detalles de una empresa por nombre. Fallback genérico si no está mapeada."""
+    return _EMPRESA_EFECTOS.get(nombre, [
+        ("Efecto",      "Ver reglas del juego"),
+        ("Al caer",     "Fórmula: Dados × (10 × (2 + N empresas))"),
+    ])
 
 
 # =============================================================================
@@ -374,7 +529,16 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
     for angle in [0, 90, 180, 270]:
         out_path = os.path.join(_CASILLAS_DIR, f"casilla_{_safe_name(propiedad.nombre)}_{angle}.html")
         if not force and os.path.exists(out_path):
-            continue
+            # Si hay imagen disponible pero la casilla no la tiene incrustada, regenerar
+            if img_path:
+                with open(out_path, "r", encoding="utf-8") as f:
+                    existing = f.read()
+                if "background-image" not in existing:
+                    pass   # cae al bloque de generación abajo
+                else:
+                    continue
+            else:
+                continue
 
         # La casilla siempre se dibuja "derecha" (0°); la rotación la aplica boardFactory
         # al momento de inlinear en el <td>. Guardamos los 4 para compatibilidad
@@ -471,79 +635,153 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
 # =============================================================================
 
 _TIPO_DETALLE = {
-    1:  lambda p: [
-            ("Renta base",          f"${int(float(p.renta_base)):,}"),
-            ("Con 1 casa",          f"${int(float(p.renta_base)*2):,}"),
-            ("Con 2 casas",         f"${int(float(p.renta_base)*4):,}"),
-            ("Con hotel",           f"${int(float(p.renta_base)*8):,}"),
-            ("Precio hipoteca",     f"${int(float(p.precio)//2):,}"),
-        ],
-    2:  lambda p: [
-            ("Fórmula de cobro",    "Dados × (10 × (2 + N empresas))"),
-            ("Precio compra",       f"${int(float(p.precio)):,}"),
-        ],
-    3:  lambda p: [
-            ("Cobro base",          f"${int(float(p.precio)):,}"),
-            ("Cobro c/ 2 trenes",   f"${int(float(p.precio)*2):,}"),
-            ("Cobro c/ 3 trenes",   f"${int(float(p.precio)*3):,}"),
-            ("Cobro c/ 4 trenes",   f"${int(float(p.precio)*4):,}"),
-            ("Mover al sig. tren",  "100K"),
-        ],
-    4:  lambda p: [
-            ("Cobro base",          f"${int(float(p.precio)):,}"),
-            ("Mover a cualquier aeropuerto", "200K"),
-            ("Nota",                "Solo cobras 2M al pasar salida si usas aeropuerto"),
-        ],
-    5:  lambda p: [
-            ("Efecto",              "Toma todo el dinero acumulado de impuestos"),
-        ],
-    6:  lambda p: [
-            ("1",  "Hospital 3T · paga 300K · recibe 1 oro"),
-            ("2",  "Hospital 3T · paga 300K · recibe 2 oro"),
-            ("3",  "Hospital 3T · paga 300K · recibe 5 oro"),
-            ("4",  "Hospital 3T · paga 300K · recibe 10 oro"),
-            ("5",  "Paga 200K · recibe 10 oro"),
-            ("6",  "Recibe 10 oro gratis"),
-        ],
-    7:  lambda p: [
-            ("Efecto",              "Todos ponen 100K · se juega una mano de póker"),
-            ("Premio",              "El ganador se lleva el bote"),
-        ],
-    8:  lambda p: [
-            ("Precio base",         f"${int(float(p.precio)):,}"),
-            ("Precio compra",       f"${int(float(p.precio)*3):,}"),
-            ("Renta al caer",       f"${int(float(p.precio)*5):,}"),
-            ("Duración",            f"{int(float(p.renta_base))} turnos"),
-        ],
-    9:  lambda p: [
-            ("Precio base",         f"${int(float(p.precio)):,}"),
-            ("Precio compra",       f"${int(float(p.precio)*3):,}"),
-            ("Renta al caer",       f"${int(float(p.precio)*5):,}"),
-            ("Movimiento extra",    "10K por casilla (máx. 200K)"),
-        ],
-    10: lambda p: [
-            ("Efecto",              "Ver la carta al robarla"),
-        ],
+    # ── 1: PROPIEDAD ─────────────────────────────────────────────────────────
+    1: lambda p: [
+        ("Renta base",       f"${int(float(p.renta_base)):,}"),
+        ("Con 1 casa",       f"${int(float(p.renta_base) * 2):,}"),
+        ("Con 2 casas",      f"${int(float(p.renta_base) * 4):,}"),
+        ("Con 3 casas",      f"${int(float(p.renta_base) * 6):,}"),
+        ("Con hotel",        f"${int(float(p.renta_base) * 10):,}"),
+        ("Precio hipoteca",  f"${int(float(p.precio) // 2):,}"),
+    ],
+
+    # ── 2: EMPRESA ───────────────────────────────────────────────────────────
+    # Delegado a _empresa_detalle() por nombre; ver sección _EMPRESA_EFECTOS
+    2: lambda p: _empresa_detalle(p.nombre),
+
+    # ── 3: TREN ──────────────────────────────────────────────────────────────
+    3: lambda p: [
+        ("Cobro c/ 1 tren",  f"${int(float(p.precio)):,}"),
+        ("Cobro c/ 2 trenes", f"${int(float(p.precio) * 2):,}"),
+        ("Cobro c/ 3 trenes", f"${int(float(p.precio) * 3):,}"),
+        ("Cobro c/ 4 trenes", f"${int(float(p.precio) * 4):,}"),
+        ("Mover al sig. tren", "100K"),
+        ("Nota",              "Si usas el tren, solo cobras 2M al pasar la Salida"),
+    ],
+
+    # ── 4: AEROPUERTO ────────────────────────────────────────────────────────
+    4: lambda p: [
+        ("Cobro c/ 1 aeropuerto", f"${int(float(p.precio)):,}"),
+        ("Cobro c/ 2",        f"${int(float(p.precio) // 2):,}"),
+        ("Cobro c/ 3",        f"${int(float(p.precio) // 3):,}"),
+        ("Cobro c/ 4",        f"${int(float(p.precio) // 4):,}"),
+        ("Volar a cualquier aeropuerto", "200K"),
+        ("Nota",              "Si usas el aeropuerto, solo cobras 2M al pasar la Salida"),
+    ],
+
+    # ── 5: LOTERÍA ───────────────────────────────────────────────────────────
+    5: lambda p: [
+        ("Efecto",            "Toma todo el dinero acumulado de impuestos del centro"),
+        ("Nota",              "Si el bote está vacío, no cobras nada"),
+    ],
+
+    # ── 6: MINA ──────────────────────────────────────────────────────────────
+    6: lambda p: [
+        ("🎲 1",  "Hospital 3 turnos · paga 300K · recibe 1 oro"),
+        ("🎲 2",  "Hospital 3 turnos · paga 300K · recibe 2 oro"),
+        ("🎲 3",  "Hospital 3 turnos · paga 300K · recibe 5 oro"),
+        ("🎲 4",  "Hospital 3 turnos · paga 300K · recibe 10 oro"),
+        ("🎲 5",  "Paga 200K · recibe 10 oro"),
+        ("🎲 6",  "Recibe 10 oro gratis"),
+    ],
+
+    # ── 7: CASINO ────────────────────────────────────────────────────────────
+    7: lambda p: [
+        ("Al caer",           "Todos los jugadores ponen 100K en el bote"),
+        ("Mecánica",          "Se juega una mano de póker"),
+        ("Retiro",            "Cualquier jugador puede retirarse en cualquier momento"),
+        ("Premio",            "El ganador se lleva todo el bote"),
+        ("Bonus dueño CFE",   "CFE recupera 20% del total apostado de la banca"),
+    ],
+
+    # ── 8: NEGOCIO ───────────────────────────────────────────────────────────
+    8: lambda p: [
+        ("Al caer (sin dueño)", f"${int(float(p.precio)):,}"),
+        ("Precio de compra",  f"${int(float(p.precio) * 3):,}"),
+        ("Renta al caer",     f"${int(float(p.precio) * 5):,}"),
+        ("Duración",          f"{int(float(p.renta_base))} turnos"),
+        ("Vencimiento",       "Regresa al gobierno al expirar"),
+    ],
+
+    # ── 9: TAXI ──────────────────────────────────────────────────────────────
+    9: lambda p: [
+        ("Al caer (sin dueño)", f"${int(float(p.precio)):,}"),
+        ("Precio de compra",  f"${int(float(p.precio) * 3):,}"),
+        ("Renta al caer",     f"${int(float(p.precio) * 5):,}"),
+        ("Uso único",         "Expira tras la primera renta cobrada"),
+        ("Si caes en el tuyo","Compra movimientos: 10K por casilla (máx. 200K)"),
+        ("Bonus Pemex",       "Pemex recibe la mitad de todo lo que muevas"),
+    ],
+
+    # ── 10: FORTUNA ──────────────────────────────────────────────────────────
+    # El efecto específico está en la carta física; la tarjeta solo indica el carril
+    10: lambda p: _fortuna_detalle(p.carril),
+
+    # ── 11: CÁRCEL ───────────────────────────────────────────────────────────
     11: lambda p: [
-            ("Costo por turno",     "200K"),
-            ("Costo salida rápida", "500K"),
-            ("Duración",            "3 turnos"),
-            ("Nota",                "Pierdes todos los efectos rojos positivos"),
-        ],
+        ("Condición de entrada", "3 fortunas iguales · condición de juego · casilla policía"),
+        ("Costo por turno",   "200K"),
+        ("Salida rápida",     "500K"),
+        ("Duración",          "3 turnos"),
+        ("Pierdes",           "Todos los efectos rojos positivos acumulados"),
+        ("Si el dueño cae",   "Pierde la empresa · regresa al gobierno"),
+    ],
+
+    # ── 12: HOSPITAL ─────────────────────────────────────────────────────────
     12: lambda p: [
-            ("Costo por turno",     "300K"),
-            ("Duración",            "3 turnos"),
-        ],
+        ("Condición de entrada", "Mina · Carta de pistola · otros efectos"),
+        ("Costo por turno",   "300K"),
+        ("Duración",          "3 turnos"),
+        ("Dueño del IMSS",    "Recibe todos los gastos médicos ajenos · nunca paga los suyos"),
+        ("Nota",              "No se puede sacar a alguien sin efectos rojos"),
+    ],
+
+    # ── 13: SALIDA ───────────────────────────────────────────────────────────
     13: lambda p: [
-            ("Premio al pasar",     "5,000,000"),
-        ],
+        ("Premio al pasar",   "5,000,000"),
+        ("Si usas tren",      "Solo cobras 2,000,000"),
+        ("Si usas aeropuerto","Solo cobras 2,000,000"),
+    ],
+
+    # ── 14: CASA DE CAMBIO ───────────────────────────────────────────────────
     14: lambda p: [
-            ("Efecto",              "Cambia dinero por oro o viceversa"),
-        ],
+        ("Efecto",            "Cambia dinero por oro o viceversa"),
+        ("Ubicación",         "Esquinas del carril amarillo"),
+        ("Nota",              "La tasa de cambio la decide el banco"),
+    ],
+
+    # ── 15: DÍA DE PAGA ──────────────────────────────────────────────────────
     15: lambda p: [
-            ("Efecto",              "Recibes 50K por cada fortuna roja que tengas"),
-        ],
+        ("Efecto",            "Recibes 50K por cada fortuna roja que tengas"),
+        ("Ubicación",         "Esquinas del carril rojo"),
+        ("Nota",              "Solo cuentan las fortunas rojas en tu poder"),
+    ],
 }
+
+
+def _fortuna_detalle(carril: int) -> list:
+    """Devuelve la descripción de cartas disponibles según el carril."""
+    if carril == 1:  # azul
+        return [
+            ("Carta de pistola ×4", "Asalta a un jugador en la misma casilla: envíalo al hospital, roba dinero o una propiedad"),
+            ("Accidente ×1",        "Pierdes automáticamente todo tu dinero"),
+            ("Carta de hijo ×2",    "Pagas el doble 3 turnos · luego tienes un 4° dado permanente"),
+        ]
+    elif carril == 2:  # amarillo
+        return [
+            ("Suerte alterada ×4",  "Comodín para cualquier mano de póker"),
+            ("Patrón de oro ×2",    "Cambia todo tu dinero por oro de inmediato"),
+            ("Dados cargados ×6",   "Tira los dados una vez más este turno"),
+        ]
+    else:  # rojo
+        return [
+            ("Banca popular ×1",       "Administras el banco · todo su dinero pasa a tus manos"),
+            ("Seguro social ×8",       "Ve al hospital una vez sin pagar"),
+            ("Prestaciones sup. ×4",   "Por cada negocio que tengas, paga 100K"),
+            ("Manifestación ×2",       "Los demás juegan con 1 solo dado hasta tu próximo turno"),
+            ("Turnocturno ×6",         "Tira los dados una vez más este turno"),
+            ("Revolución ×1",          "Efecto inmediato: todas las casas y hoteles regresan al gobierno (requiere mayoría)"),
+        ]
 
 
 def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: dict = None):
@@ -555,9 +793,20 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
     if colors is None: colors = _get_colors()
 
     out_path = os.path.join(_TARJETAS_DIR, f"tarjeta_{_safe_name(propiedad.nombre)}.html")
-    if not force and os.path.exists(out_path):
-        return
 
+    # Verificar caché: obtener img_path primero para saber si debemos regenerar
+    img_path = _get_image_path(propiedad.nombre, cfg)
+
+    if not force and os.path.exists(out_path):
+        if img_path:
+            with open(out_path, "r", encoding="utf-8") as f:
+                existing = f.read()
+            if "background-image" in existing:
+                return   # ya tiene imagen, no regenerar
+            # si no tiene imagen, cae al bloque de generación
+        else:
+            return
+    
     card_cfg  = cfg["card"]
     w         = card_cfg["width_px"]
     h         = card_cfg["height_px"]
@@ -571,8 +820,6 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
     tipo_label, tipo_subtitle, _has_renta = _tipo_info(propiedad.tipo)
     detalles = _TIPO_DETALLE.get(propiedad.tipo, lambda p: [])(propiedad)
 
-    # Imagen de fondo semitransparente en el área bajo la franja
-    img_path = _get_image_path(propiedad.nombre, cfg)
     img_bg_css = ""
     if img_path:
         b64 = _img_to_b64(img_path)

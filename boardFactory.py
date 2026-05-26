@@ -32,7 +32,7 @@ RED_CANONICAL    = YELLOW_CANONICAL - 4
 NULL_TILE_FILE = "casilla_NULL"
 
 DEFAULT_TILES_DIR  = os.path.join("repo", "casillas")
-DEFAULT_PROPS_PATH = os.path.join("props", "propiedades.json")
+DEFAULT_PROPS_PATH = os.path.join("props", "zmg.csv")
 
 
 # =========================
@@ -53,27 +53,42 @@ class TileCell:
 # =========================
 
 def loadProperties(propsPath: str = DEFAULT_PROPS_PATH) -> Dict[str, dict]:
-    """Load propiedades.json and return a dict indexed by property name."""
+    """
+    Carga propiedades desde JSON, CSV o Excel.
+    Devuelve un dict indexado por nombre de casilla.
+    Si el archivo no existe, devuelve {} silenciosamente.
+    """
     if not os.path.exists(propsPath):
         return {}
 
-    with open(propsPath, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    ext = os.path.splitext(propsPath)[1].lower()
 
-    if isinstance(data, dict) and "properties" in data:
-        propList = data["properties"]
-    elif isinstance(data, list):
-        propList = data
-    else:
-        propList = []
+    if ext == ".json":
+        with open(propsPath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict) and "properties" in data:
+            propList = data["properties"]
+        elif isinstance(data, list):
+            propList = data
+        else:
+            propList = []
+        propByName: Dict[str, dict] = {}
+        for prop in propList:
+            name = prop.get("name") or prop.get("nombre") or prop.get("Nombre")
+            if name:
+                propByName[name] = prop
+        return propByName
 
-    propByName: Dict[str, dict] = {}
-    for prop in propList:
-        name = prop.get("name") or prop.get("nombre") or prop.get("Nombre")
-        if name:
-            propByName[name] = prop
-
-    return propByName
+    # CSV / Excel — usa pandas si está disponible
+    try:
+        import pandas as pd
+        if ext == ".csv":
+            df = pd.read_csv(propsPath)
+        else:
+            df = pd.read_excel(propsPath)
+        return {row["nombre"]: row.to_dict() for _, row in df.iterrows() if "nombre" in df.columns}
+    except ImportError:
+        return {}
 
 
 def validateLaneAssignments(
@@ -83,18 +98,23 @@ def validateLaneAssignments(
     propByName:  Dict[str, dict],
     label:       str,
 ) -> None:
+    # Mapa número de carril → nombre de color
+    _LANE_NUM = {"1": "blue", "2": "yellow", "3": "red"}
+
     allNames = list(laneNames) + list(cornerNames)
-    for index, name in enumerate(allNames):
+    for name in allNames:
         prop = propByName.get(name)
         if not prop:
-            print(f"[boardFactory] Warning: property '{name}' from {label} not found in props file")
+            print(f"[boardFactory] Warning: '{name}' from {label} no encontrada en el archivo de props")
             continue
 
-        laneValue = prop.get("lane") or prop.get("carril") or prop.get("Carril")
-        if laneValue and str(laneValue).lower() != laneColor.lower():
+        raw = prop.get("lane") or prop.get("carril") or prop.get("Carril") or ""
+        # Normalizar: "2" → "yellow", "blue" → "blue"
+        lane_normalized = _LANE_NUM.get(str(raw).strip(), str(raw).strip().lower())
+        if lane_normalized and lane_normalized != laneColor.lower():
             print(
-                f"[boardFactory] Warning: '{name}' has lane '{laneValue}' "
-                f"but is listed in {label} for lane '{laneColor}'"
+                f"[boardFactory] Warning: '{name}' tiene carril '{raw}' ({lane_normalized}) "
+                f"pero está listada en {label} ('{laneColor}')"
             )
 
 
@@ -208,6 +228,11 @@ def createRingCells(
 # RENDER — INLINE HTML
 # =========================
 
+# Set global que acumula reglas @font-face de todas las casillas inlineadas.
+# generateBoardHtml lo vacía antes de cada build y lo inyecta en el <head>.
+_BOARD_FONT_CACHE: set = set()
+
+
 def renderTileCell(cell: TileCell, cell_class: str = "") -> str:
     """
     Inlinea el HTML de una casilla dentro del <td> del tablero.
@@ -250,41 +275,41 @@ def renderTileCell(cell: TileCell, cell_class: str = "") -> str:
         style_raw  = style_match.group(1).strip() if style_match else ""
 
         # Scopear cada regla CSS: ".tile { … }" → ".s{uid} .tile { … }"
-        # Reemplaza selectores que empiezan con "." o con elemento conocido
-        def scope_css(css: str, prefix: str) -> str:
-            # Divide en bloques "selector { … }"
-            result = []
+        # Las reglas @font-face se extraen y se devuelven por separado para
+        # inyectarlas en el <head> del tablero (no dentro de un selector).
+        def scope_css(css: str, prefix: str) -> tuple[str, str]:
+            """Devuelve (css_scoped, font_face_rules)."""
+            scoped  = []
+            at_root = []   # @font-face, @keyframes, etc. — van al root
             for block in re.split(r'(?<=\})', css):
                 block = block.strip()
                 if not block:
                     continue
-                # Encuentra el { que abre el bloque de declaraciones
                 brace = block.find('{')
                 if brace == -1:
-                    result.append(block)
+                    scoped.append(block)
                     continue
                 selectors_str = block[:brace].strip()
                 declarations  = block[brace:]
-                # Ignora reglas @font-face, @keyframes, etc.
                 if selectors_str.startswith('@'):
-                    result.append(block)
+                    at_root.append(block)   # @font-face va fuera del scope
                     continue
-                # Ignora selectores que aplican a html/body (no los queremos)
                 new_sels = []
                 for sel in selectors_str.split(','):
                     sel = sel.strip()
-                    if not sel:
+                    if not sel or sel in ('html', 'body', 'html body', '*'):
                         continue
-                    if sel in ('html', 'body', 'html body', '*'):
-                        continue   # descartamos reglas de reset globales
                     new_sels.append(f"{prefix} {sel}")
                 if new_sels:
-                    result.append(f"{', '.join(new_sels)} {declarations}")
-            return '\n'.join(result)
+                    scoped.append(f"{', '.join(new_sels)} {declarations}")
+            return '\n'.join(scoped), '\n'.join(at_root)
 
         prefix     = f".s{uid}"
-        scoped_css = scope_css(style_raw, prefix)
+        scoped_css, font_rules = scope_css(style_raw, prefix)
         scoped_style = f"<style>{scoped_css}</style>"
+        # font_rules se pasa al caller via atributo del wrapper para que
+        # generateBoardHtml las inyecte en el <head> una sola vez
+        _BOARD_FONT_CACHE.add(font_rules)   # set global deduplica automáticamente
 
         # Añadir clase de scoping al div raíz (.tile)
         body_scoped = body_html.replace(
@@ -448,6 +473,9 @@ def generateBoardHtml(
     yellowSize = max(boardSize - 2, 0)
     redSize    = max(boardSize - 4, 0)
 
+    # Reset cache before this build so we start fresh
+    _BOARD_FONT_CACHE.clear()
+
     boardCells: Dict[Tuple[int, int], TileCell] = {}
 
     if blueSize >= 3:
@@ -524,12 +552,18 @@ def generateBoardHtml(
 </style>
 """
 
+    # ── Fuentes: inyectar @font-face una sola vez en el <head> ───────────────
+    font_style = ""
+    if _BOARD_FONT_CACHE:
+        font_rules = "\n".join(r for r in _BOARD_FONT_CACHE if r.strip())
+        font_style = f"<style>{font_rules}</style>\n"
+
     html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Metropoly Board</title>
-{style}
+{font_style}{style}
 </head>
 <body>
 <div class="board-container">

@@ -33,7 +33,7 @@
 
   "scraper": {
     "images_per_tile": 1,
-    "headless":        true,
+    "headless":        false,
     "min_resolution":  [80, 80],
     "max_resolution":  [3840, 2160],
     "max_missed":      5
