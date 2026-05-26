@@ -456,21 +456,31 @@ def _empresa_detalle(nombre: str) -> list:
 # SHARED CSS (fuente + reset base)
 # =============================================================================
 
-def _base_css(font_b64: str) -> str:
-    font_face = ""
-    if font_b64:
-        font_face = f"""
-        @font-face {{
+def _font_exists() -> bool:
+    return os.path.exists(_FONT_PATH)
+
+
+def _font_face_css(rel_path: str) -> str:
+    """
+    Devuelve el bloque @font-face usando una ruta relativa al TTF.
+    Si la fuente no existe, devuelve string vacío (fallback a Impact).
+    """
+    if not _font_exists():
+        return ""
+    return f"""@font-face {{
             font-family: 'KabelHeavy';
-            src: url('data:font/ttf;base64,{font_b64}') format('truetype');
+            src: url('{rel_path}') format('truetype');
         }}"""
-    return f"""
-        {font_face}
-        *, *::before, *::after {{
+
+
+def _base_css() -> str:
+    """CSS base — referencia KabelHeavy por nombre, con Century Gothic como fallback."""
+    return """
+        *, *::before, *::after {
             box-sizing: border-box;
             margin: 0; padding: 0;
-            font-family: 'KabelHeavy', 'Impact', sans-serif;
-        }}
+            font-family: 'KabelHeavy', 'Century Gothic', 'URW Gothic', 'Futura', sans-serif;
+        }
     """
 
 
@@ -518,26 +528,26 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
         else:
             precio_str = str(int(p))
 
-    font_b64  = _font_b64()
-    base_css  = _base_css(font_b64)
+    # Ruta relativa al TTF desde repo/casillas/
+    font_face = _font_face_css("../../src/KabelHeavy.ttf")
+    base_css  = _base_css()
 
     # Nombre display: recortado si es muy largo
     nombre_display = propiedad.nombre
     if len(nombre_display) > 24:
         nombre_display = nombre_display[:22] + "…"
 
+    has_font = _font_exists()   # True si KabelHeavy.ttf existe
+
     for angle in [0, 90, 180, 270]:
         out_path = os.path.join(_CASILLAS_DIR, f"casilla_{_safe_name(propiedad.nombre)}_{angle}.html")
         if not force and os.path.exists(out_path):
-            # Si hay imagen disponible pero la casilla no la tiene incrustada, regenerar
-            if img_path:
-                with open(out_path, "r", encoding="utf-8") as f:
-                    existing = f.read()
-                if "background-image" not in existing:
-                    pass   # cae al bloque de generación abajo
-                else:
-                    continue
-            else:
+            with open(out_path, "r", encoding="utf-8") as f:
+                existing = f.read()
+            # Regenerar si: falta imagen, o falta @font-face cuando debería estar
+            needs_image = img_path and "background-image" not in existing
+            needs_font  = has_font and "@font-face" not in existing
+            if not needs_image and not needs_font:
                 continue
 
         # La casilla siempre se dibuja "derecha" (0°); la rotación la aplica boardFactory
@@ -547,6 +557,7 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+{f'<style>{font_face}</style>' if font_face else ''}
 <style>
     {base_css}
 
@@ -591,14 +602,15 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
         top: {name_pct}%;
         left: 4%; right: 4%;
         text-align: center;
-        font-size: clamp({font_min}, {font_pref}, {font_max});
+        font-size: 11px;
         font-weight: normal;
         color: {border_color};
         text-transform: uppercase;
-        letter-spacing: 0.03em;
-        line-height: 1.15;
+        letter-spacing: 0.06em;
+        line-height: 1.2;
         z-index: 3;
-        text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+        text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+        word-break: break-word;
     }}
 
     /* Precio en la parte inferior */
@@ -607,7 +619,7 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
         top: {price_pct}%;
         left: 0; right: 0;
         text-align: center;
-        font-size: clamp({font_min}, {font_pref}, {font_max});
+        font-size: 10px;
         color: {border_color};
         z-index: 3;
         text-shadow: 0 1px 3px rgba(255,255,255,0.9);
@@ -798,13 +810,11 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
     img_path = _get_image_path(propiedad.nombre, cfg)
 
     if not force and os.path.exists(out_path):
-        if img_path:
-            with open(out_path, "r", encoding="utf-8") as f:
-                existing = f.read()
-            if "background-image" in existing:
-                return   # ya tiene imagen, no regenerar
-            # si no tiene imagen, cae al bloque de generación
-        else:
+        with open(out_path, "r", encoding="utf-8") as f:
+            existing = f.read()
+        needs_image = img_path and "background-image" not in existing
+        needs_font  = _font_exists() and "@font-face" not in existing
+        if not needs_image and not needs_font:
             return
     
     card_cfg  = cfg["card"]
@@ -839,13 +849,15 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
                 <td class="detail-value">{value}</td>
             </tr>"""
 
-    font_b64 = _font_b64()
-    base_css = _base_css(font_b64)
+    # Ruta relativa al TTF desde repo/tarjetas/
+    font_face = _font_face_css("../../src/KabelHeavy.ttf")
+    base_css  = _base_css()
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+{f'<style>{font_face}</style>' if font_face else ''}
 <style>
     {base_css}
     {img_bg_css}

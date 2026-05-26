@@ -228,10 +228,6 @@ def createRingCells(
 # RENDER — INLINE HTML
 # =========================
 
-# Set global que acumula reglas @font-face de todas las casillas inlineadas.
-# generateBoardHtml lo vacía antes de cada build y lo inyecta en el <head>.
-_BOARD_FONT_CACHE: set = set()
-
 
 def renderTileCell(cell: TileCell, cell_class: str = "") -> str:
     """
@@ -269,47 +265,106 @@ def renderTileCell(cell: TileCell, cell_class: str = "") -> str:
         with open(cell.htmlPath, "r", encoding="utf-8") as f:
             raw = f.read()
 
-        body_match  = re.search(r"<body[^>]*>(.*?)</body>",   raw, re.DOTALL | re.IGNORECASE)
-        style_match = re.search(r"<style[^>]*>(.*?)</style>", raw, re.DOTALL | re.IGNORECASE)
-        body_html  = body_match.group(1).strip()  if body_match  else raw
-        style_raw  = style_match.group(1).strip() if style_match else ""
+        body_match = re.search(r"<body[^>]*>(.*?)</body>", raw, re.DOTALL | re.IGNORECASE)
+        body_html  = body_match.group(1).strip() if body_match else raw
+
+        # Extraer el bloque <style> del tile — puede ser el primero o el segundo
+        # (el primero era @font-face en la versión base64, ahora es el CSS del tile)
+        all_styles = re.findall(r"<style[^>]*>(.*?)</style>", raw, re.DOTALL | re.IGNORECASE)
+        # Tomar el último bloque que contenga .tile (es el CSS real del tile)
+        style_raw = ""
+        for s in reversed(all_styles):
+            if ".tile" in s:
+                style_raw = s.strip()
+                break
+        if not style_raw and all_styles:
+            style_raw = all_styles[-1].strip()
 
         # Scopear cada regla CSS: ".tile { … }" → ".s{uid} .tile { … }"
-        # Las reglas @font-face se extraen y se devuelven por separado para
-        # inyectarlas en el <head> del tablero (no dentro de un selector).
+        # Las reglas @font-face se extraen y se devuelven por separado.
+        # Usamos un parser de profundidad de llaves que ignora strings,
+        # para no romperse con base64 u otros contenidos con { } dentro.
         def scope_css(css: str, prefix: str) -> tuple[str, str]:
-            """Devuelve (css_scoped, font_face_rules)."""
+            """
+            Parsea CSS bloque por bloque respetando strings y llaves anidadas.
+            Devuelve (css_scoped, at_root_rules).
+            """
             scoped  = []
-            at_root = []   # @font-face, @keyframes, etc. — van al root
-            for block in re.split(r'(?<=\})', css):
-                block = block.strip()
-                if not block:
+            at_root = []
+            i = 0
+            n = len(css)
+
+            while i < n:
+                # Saltar espacios
+                while i < n and css[i] in ' \t\n\r':
+                    i += 1
+                if i >= n:
+                    break
+
+                # Leer hasta la primera { teniendo en cuenta strings
+                selector_start = i
+                in_string = None
+                while i < n:
+                    c = css[i]
+                    if in_string:
+                        if c == in_string and css[i-1:i] != '\\':
+                            in_string = None
+                    elif c in ('"', "'"):
+                        in_string = c
+                    elif c == '{':
+                        break
+                    i += 1
+
+                if i >= n:
+                    break
+
+                selector = css[selector_start:i].strip()
+                i += 1  # consume {
+
+                # Leer el bloque de declaraciones respetando llaves anidadas y strings
+                depth = 1
+                block_start = i
+                in_string = None
+                while i < n and depth > 0:
+                    c = css[i]
+                    if in_string:
+                        if c == in_string and css[i-1:i] != '\\':
+                            in_string = None
+                    elif c in ('"', "'"):
+                        in_string = c
+                    elif c == '{':
+                        depth += 1
+                    elif c == '}':
+                        depth -= 1
+                    i += 1
+
+                declarations = css[block_start:i].rstrip('}').strip()
+                full_block = f"{selector} {{{declarations}}}"
+
+                # @font-face y otros @-rules van al root sin scopear
+                if selector.startswith('@'):
+                    at_root.append(full_block)
                     continue
-                brace = block.find('{')
-                if brace == -1:
-                    scoped.append(block)
-                    continue
-                selectors_str = block[:brace].strip()
-                declarations  = block[brace:]
-                if selectors_str.startswith('@'):
-                    at_root.append(block)   # @font-face va fuera del scope
-                    continue
+
+                # Descartar selectores de reset global (html, body, *)
                 new_sels = []
-                for sel in selectors_str.split(','):
+                for sel in selector.split(','):
                     sel = sel.strip()
                     if not sel or sel in ('html', 'body', 'html body', '*'):
                         continue
-                    new_sels.append(f"{prefix} {sel}")
+                    # *::before, *::after — scopear al prefix
+                    if sel.startswith('*'):
+                        new_sels.append(f"{prefix} {sel}")
+                    else:
+                        new_sels.append(f"{prefix} {sel}")
                 if new_sels:
-                    scoped.append(f"{', '.join(new_sels)} {declarations}")
+                    scoped.append(f"{', '.join(new_sels)} {{{declarations}}}")
+
             return '\n'.join(scoped), '\n'.join(at_root)
 
         prefix     = f".s{uid}"
-        scoped_css, font_rules = scope_css(style_raw, prefix)
+        scoped_css, _at_root = scope_css(style_raw, prefix)
         scoped_style = f"<style>{scoped_css}</style>"
-        # font_rules se pasa al caller via atributo del wrapper para que
-        # generateBoardHtml las inyecte en el <head> una sola vez
-        _BOARD_FONT_CACHE.add(font_rules)   # set global deduplica automáticamente
 
         # Añadir clase de scoping al div raíz (.tile)
         body_scoped = body_html.replace(
@@ -473,9 +528,6 @@ def generateBoardHtml(
     yellowSize = max(boardSize - 2, 0)
     redSize    = max(boardSize - 4, 0)
 
-    # Reset cache before this build so we start fresh
-    _BOARD_FONT_CACHE.clear()
-
     boardCells: Dict[Tuple[int, int], TileCell] = {}
 
     if blueSize >= 3:
@@ -499,7 +551,7 @@ def generateBoardHtml(
     # Tile base: 150×150  |  corner/vertical/horizontal: 225 en la dimensión larga
     style = """
 <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'KabelHeavy', 'Century Gothic', 'URW Gothic', 'Futura', sans-serif; }
 
     .board-container {
         display: flex;
@@ -552,11 +604,43 @@ def generateBoardHtml(
 </style>
 """
 
-    # ── Fuentes: inyectar @font-face una sola vez en el <head> ───────────────
-    font_style = ""
-    if _BOARD_FONT_CACHE:
-        font_rules = "\n".join(r for r in _BOARD_FONT_CACHE if r.strip())
-        font_style = f"<style>{font_rules}</style>\n"
+    # ── Fuente: @font-face por ruta relativa desde repo/tableros/ ────────────
+    _font_path = os.path.join(os.path.dirname(__file__), "src", "KabelHeavy.ttf")
+    if os.path.exists(_font_path):
+        font_style = """<style>
+@font-face {
+    font-family: 'KabelHeavy';
+    src: url('../../src/KabelHeavy.ttf') format('truetype');
+}
+</style>
+"""
+    else:
+        font_style = ""
+
+    font_check_script = """
+<script>
+(function() {
+    if (!document.fonts) {
+        console.warn('[Metropoly] Font Loading API no disponible en este browser.');
+        return;
+    }
+    document.fonts.ready.then(function() {
+        var loaded = false;
+        document.fonts.forEach(function(f) {
+            if (f.family.toLowerCase().includes('kabel')) loaded = true;
+        });
+        if (loaded) {
+            console.log('[Metropoly] ✅ KabelHeavy cargada correctamente.');
+        } else {
+            console.warn(
+                '[Metropoly] ⚠️ KabelHeavy NO está cargada. ' +
+                'El tablero usa Impact como fallback. ' +
+                'Verifica que src/KabelHeavy.ttf existe y que generator.py la incrustó.'
+            );
+        }
+    });
+})();
+</script>"""
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -569,6 +653,7 @@ def generateBoardHtml(
 <div class="board-container">
 {boardHtml}
 </div>
+{font_check_script}
 </body>
 </html>"""
 

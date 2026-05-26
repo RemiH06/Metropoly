@@ -1,0 +1,120 @@
+nombre,carril,nivel,efecto,tipo,cantidad
+Carta de Pistola,1,4,Guarda esta carta. Al caer en la misma casilla que otro jugador puedes asaltarlo: envíalo al hospital· roba su dinero o una propiedad.,guardian,4
+Accidente Vial,1,1,Pierdes automáticamente todo tu dinero. El banco se queda con él.,inmediato,1
+Carta de Hijo,1,2,Los siguientes 3 turnos pagas el doble de todo. Después obtienes un 4° dado permanente.,doble,2
+Multa de Tránsito,1,2,Paga 200K al banco de inmediato.,inmediato,3
+Bache en el Periférico,1,2,Pierdes tu siguiente turno por el daño al vehículo.,inmediato,2
+Herencia Inesperada,1,5,Recibes 500K del banco.,inmediato,2
+Premio de Lotería Menor,1,4,Recibes 300K del banco.,inmediato,3
+Donativo Anónimo,1,4,Recibes 250K del banco.,inmediato,3
+Reembolso Fiscal,1,4,El banco te devuelve 150K.,inmediato,3
+Reparación de Emergencia,1,2,Paga 300K al banco por reparaciones.,inmediato,2
+Seguro de Vida,1,5,La próxima vez que vayas al hospital no pagas los 300K.,guardian,2
+Falla Mecánica,1,1,Paga 400K al banco. Tu vehículo quedó inservible.,inmediato,1
+Contrato Lucrativo,1,5,Recibes 100K por cada propiedad azul que tengas.,inmediato,2
+Inversión Fallida,1,1,Pierdes 300K. Si no tienes suficiente· pierdes lo que tengas.,inmediato,2
+Recaudación Extra,1,3,Cobra 100K a cada jugador que esté en el carril azul.,inmediato,2
+Cobertura Médica,1,4,Puedes salir del hospital sin pagar en tu próximo turno en él.,guardian,2
+Deuda Vencida,1,2,Paga 50K por cada propiedad que tengas hipotecada.,inmediato,2
+Bonificación por Puntualidad,1,4,Si no has ido a la cárcel esta partida· recibe 200K.,inmediato,2
+Asalto Fallido,1,3,Otro jugador intenta asaltarte pero falla. Sin efecto.,inmediato,3
+Robo en Casa,1,1,Pierdes 250K. El banco retiene el dinero.,inmediato,2
+Infracción de Velocidad,1,2,Paga 150K de multa al banco.,inmediato,3
+Ayuda Comunitaria,1,3,Recibes 75K de cada jugador como donativo.,inmediato,2
+Viaje de Negocios,1,4,Muévete gratis a cualquier casilla del carril azul.,inmediato,2
+Accidente Menor,1,2,Ve al hospital por 1 turno. Pagas solo 100K.,inmediato,2
+Diagnóstico Falso,1,3,Recibes 200K del dueño del IMSS por error médico.,inmediato,2
+Beca Universitaria,1,5,No pagas en la UdeG este turno ni el siguiente.,guardian,2
+Fraude Bancario,1,1,Pierdes el 20% de todo tu dinero actual.,inmediato,2
+Subsidio Gubernamental,1,4,El banco te entrega 180K por programas sociales.,inmediato,2
+Choque en Avenida,1,2,Paga 120K de deducible al banco.,inmediato,3
+Éxito Empresarial,1,5,Recibes 80K por cada empresa que poseas.,inmediato,2
+Premio al Ciudadano,1,5,El banco te entrega 220K por buena conducta.,inmediato,2
+Renta Atrasada,1,3,El siguiente jugador que caiga en tu propiedad paga el doble.,guardian,2
+Catástrofe Natural,1,1,Todos los jugadores pierden 100K. El banco retiene el dinero.,inmediato,1
+Reelección Exitosa,1,4,Cobra 50K a cada jugador del carril azul.,inmediato,2
+Crisis de Liquidez,1,2,No puedes comprar nada durante 2 turnos.,inmediato,2
+Descuento en Peaje,1,3,No pagas en la Caseta de Zapotlanejo este turno.,guardian,3
+Rescate Financiero,1,4,Elige a un jugador: le cobras 200K.,inmediato,2
+Cartera Perdida,1,2,Pierdes 100K. Alguien más los encontró.,inmediato,3
+Convenio Sindical,1,3,No pagas renta en propiedades ajenas este turno.,guardian,2
+Trámite Exitoso,1,3,Avanza 3 casillas en el carril azul.,inmediato,2
+Suerte Alterada,2,4,Guarda esta carta y úsala como comodín en cualquier mano de póker.,guardian,4
+Patrón de Oro,2,5,Cambia todo tu dinero por oro de inmediato al tipo de cambio actual.,inmediato,2
+Dados Cargados,2,4,Guarda esta carta. Úsala para tirar los dados una vez más en tu turno.,guardian,6
+Quiebra de Negocio,2,1,Uno de tus negocios expira de inmediato sin recuperar el precio de compra.,inmediato,2
+Clientela Fiel,2,5,Recibes 150K por cada taxi que poseas.,inmediato,2
+Mala Racha en el Casino,2,1,Pierdes 200K adicionales si perdiste una mano de póker este turno.,inmediato,2
+Jackpot Menor,2,4,Recibes 250K del bote del casino aunque no hayas jugado.,inmediato,2
+Contrabando Detectado,2,1,Paga 300K de multa. El banco decomisa una tarjeta guardian que tengas.,inmediato,1
+Negocio del Año,2,5,Tus negocios duran 2 turnos adicionales.,inmediato,2
+Taxi Gratis,2,4,Usa cualquier taxi sin costo este turno y el siguiente.,guardian,2
+Inspección Sanitaria,2,2,Uno de tus negocios queda inhabilitado 1 turno.,inmediato,2
+Feria de Empleo,2,3,Recibes 100K por cada negocio activo que tengas.,inmediato,2
+Robo en el Mercado,2,2,Pierdes 150K. El banco retiene el dinero.,inmediato,2
+Turismo Récord,2,5,Cobra 80K a cada jugador que tenga negocios en el carril amarillo.,inmediato,2
+Huelga de Taxistas,2,2,Ningún jugador puede usar taxis este turno.,inmediato,2
+Subasta Sorpresa,2,3,El banco pone a subasta una propiedad al 50% de su valor.,inmediato,2
+Crédito Express,2,4,El banco te presta 300K sin intereses. Devuelves 300K en 3 turnos.,inmediato,2
+Explosión en Mina,2,1,Si tienes alguna mina· pierde su efecto permanentemente.,inmediato,1
+Veta de Oro,2,5,Recibe 3 de oro gratis del banco.,inmediato,2
+Regateo Exitoso,2,4,El siguiente negocio que compres cuesta la mitad.,guardian,2
+Mercado Saturado,2,2,Tus negocios cobran la mitad de renta este turno.,inmediato,2
+Permiso de Construcción,2,4,Puedes construir una casa en cualquier propiedad sin pagar el costo de construcción.,guardian,2
+Devaluación,2,1,Todos los jugadores pierden el 15% de su dinero.,inmediato,1
+Temporada Alta,2,5,Tus taxis cobran el doble de renta este turno.,inmediato,2
+Clausura Temporal,2,2,Elige un negocio ajeno: no cobra renta este turno.,inmediato,2
+Oferta Especial,2,3,Compra cualquier negocio disponible a precio base sin multiplicador.,guardian,2
+Apuesta Ganadora,2,5,Recibes el 30% del total apostado en el casino de este turno.,inmediato,2
+Fuga de Capital,2,1,Pierdes 1 de oro si tienes. Si no· pierdes 200K.,inmediato,2
+Convenio Comercial,2,3,Intercambia un negocio con otro jugador de mutuo acuerdo.,inmediato,2
+Liquidación Forzada,2,2,Debes vender un negocio al banco por la mitad de su valor.,inmediato,2
+Monopolio Parcial,2,3,Si tienes 3 o más negocios activos· recibe 200K del banco.,inmediato,2
+Rifa del Mercado,2,3,Recibes 50K por cada jugador en el carril amarillo.,inmediato,2
+Sorpresa Fiscal,2,2,Paga 100K de impuestos al banco.,inmediato,3
+Inversión Acertada,2,4,Recibes 120K por cada casino que poseas.,inmediato,2
+Banca Popular,3,5,Administras el banco: su dinero pasa a tus manos. No puedes comprar oro hasta que se vendan todas las propiedades de colores.,inmediato,1
+Seguro Social,3,4,Guarda esta carta. Úsala para ir al hospital una vez sin pagar.,guardian,8
+Prestaciones Superiores,3,2,Paga 100K al banco por cada negocio que tengas.,inmediato,4
+Manifestación,3,4,Los demás jugadores juegan con un solo dado hasta que vuelva a ser tu turno.,guardian,2
+Turnocturno,3,4,Guarda esta carta. Úsala para tirar los dados una vez más en tu turno.,guardian,6
+Revolución,3,3,Efecto inmediato: todas las casas y hoteles regresan al gobierno sin reembolso. Requiere mayoría de votos.,inmediato,1
+Paro Nacional,3,2,Nadie puede comprar ni vender propiedades este turno.,inmediato,2
+Decreto de Expropiación,3,1,El gobierno toma tu propiedad más cara sin reembolso.,inmediato,1
+Amnistía Fiscal,3,5,Cancela todas tus deudas activas con el banco.,inmediato,2
+Aumento Salarial,3,5,Recibes 200K extra la próxima vez que pases por la Salida.,guardian,2
+Reforma Laboral,3,3,Todos los jugadores reciben 100K del banco.,inmediato,2
+Conflicto Sindical,3,2,El dueño de la empresa más cara de la ronda paga 200K al banco.,inmediato,2
+Inflación,3,1,Todos los pagos de este turno se incrementan un 25%.,inmediato,2
+Subsidio al Transporte,3,4,No pagas en trenes ni aeropuertos este turno.,guardian,2
+Corrupción Detectada,3,1,Si eres dueño del banco· pierdes ese privilegio de inmediato.,inmediato,1
+Elecciones Locales,3,3,Elige a un jugador: intercambian posiciones en el tablero.,inmediato,2
+Programa Social,3,4,Recibes 50K por cada fortuna roja que tengas en la mano.,inmediato,2
+Bloqueo de Carretera,3,2,El jugador con más propiedades pierde su turno.,inmediato,2
+Acuerdo de Paz,3,3,Ningún jugador puede asaltar a otro durante 2 rondas.,inmediato,2
+Corte de Luz,3,2,CFE no cobra este turno pero tampoco devuelve dinero.,inmediato,2
+Fuga de Gas,3,1,Paga 300K al banco por emergencia. Si no tienes suficiente· hipoteca algo.,inmediato,2
+Día Festivo,3,4,No pagas renta en ninguna casilla este turno.,guardian,2
+Huelga General,3,2,Todos los jugadores pierden 150K. El banco retiene el dinero.,inmediato,1
+Desastre Natural,3,1,Todos los jugadores pierden una casa o hotel si tienen.,inmediato,1
+Bonos de Gobierno,3,5,Recibes 180K del banco por tenencia de deuda pública.,inmediato,2
+Privatización,3,3,Una empresa del gobierno sale a la venta al 60% de su valor original.,inmediato,2
+Protesta Ciudadana,3,3,El jugador con más dinero paga 200K al jugador con menos.,inmediato,2
+Ley de Amnistía,3,5,Si estás en la cárcel· sales de inmediato sin pagar.,guardian,2
+Presupuesto Recortado,3,2,Paga 100K al banco. El gobierno redujo servicios.,inmediato,3
+Rescate Económico,3,4,Si tienes menos de 500K· el banco te da 300K.,inmediato,2
+Crisis Política,3,1,El jugador con más empresas pierde una al azar· regresa al gobierno.,inmediato,1
+Bono de Productividad,3,4,Recibes 120K por cada propiedad roja que tengas.,inmediato,2
+Reforma Constitucional,3,3,Cambia una regla del juego por este turno (acordada con los demás jugadores).,inmediato,1
+Deuda Soberana,3,2,Paga 80K al banco por cada empresa que tengas.,inmediato,2
+Elecciones Presidenciales,3,5,El jugador con menos puntos de oro recibe 2 de oro del banco.,inmediato,2
+Victoria Sindical,3,5,Todos los jugadores en el carril rojo reciben 150K del banco.,inmediato,2
+Toque de Queda,3,1,Ningún jugador puede cambiar de carril el próximo turno.,inmediato,2
+Apertura Comercial,3,3,Puedes comprar un negocio de cualquier carril este turno.,guardian,2
+Cierre de Gobierno,3,2,El banco no paga salario al pasar por la Salida este turno.,inmediato,2
+Concurso de Cocina,2,3,Recibes 60K por cada mercado que haya en el tablero.,inmediato,2
+Accidente en Mina,2,2,Paga 200K al banco por negligencia laboral.,inmediato,2
+Carnaval de Tlaquepaque,2,5,Cobra 70K a cada jugador. El festejo te favorece.,inmediato,2
+Piratería Digital,2,1,Pierdes 180K. Tu negocio fue hackeado.,inmediato,2
+Fusión Empresarial,2,4,Compra un negocio ajeno al precio base sin multiplicador.,guardian,2
+Bonanza Minera,2,5,Recibes 2 de oro gratis del banco.,inmediato,2

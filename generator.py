@@ -89,11 +89,11 @@ yellowLane = [
 ]
 
 redLane = [
-    "Fortuna del Colapso del Periférico", "Fortuna del Tráfico de López Mateos",
-    "Fortuna de la Lluvia en la Glorieta", "Fortuna de la Marcha del Centro",
-    "Fortuna del Desvío del Tren Ligero", "Fortuna del Parquímetro", "Fortuna del Multón",
-    "Fortuna del Asalto", "Fortuna del Gasolinazo", "Fortuna de la Manifestación",
-    "Fortuna de la Inspección Municipal", "Fortuna del Apagón",
+    "Colapso del Periférico", "Tráfico de López Mateos",
+    "Lluvia en la Glorieta", "Marcha del Centro",
+    "Desvío del Tren Ligero", "El Parquímetro", "El Multón",
+    "Asalto", "El Gasolinazo", "Manifestación",
+    "Inspección Municipal", "Apagón",
 ]
 
 blueCorners = [
@@ -112,6 +112,40 @@ redCorners = [
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _check_fonts():
+    """Verifica que los recursos de fuente existen y advierte si faltan."""
+    from cardFactory import _FONT_PATH, _font_b64
+    import os
+
+    if not os.path.exists(_FONT_PATH):
+        print(
+            f"\n⚠️  ADVERTENCIA: No se encontró la fuente en '{_FONT_PATH}'\n"
+            f"   Las casillas y tarjetas usarán Impact como fallback.\n"
+            f"   Coloca KabelHeavy.ttf en src/ para usar la fuente correcta.\n"
+        )
+        return False
+
+    b64 = _font_b64()
+    if not b64:
+        print(
+            f"\n⚠️  ADVERTENCIA: El archivo '{_FONT_PATH}' existe pero no se pudo leer.\n"
+            f"   Verifica que el archivo no esté corrupto o vacío.\n"
+        )
+        return False
+
+    size_kb = os.path.getsize(_FONT_PATH) // 1024
+    if size_kb < 100:
+        print(
+            f"\n⚠️  ADVERTENCIA: '{_FONT_PATH}' es sospechosamente pequeño ({size_kb} KB).\n"
+            f"   Un TTF válido de KabelHeavy debería pesar ~150 KB.\n"
+            f"   El archivo podría estar incompleto — la fuente puede no renderizar correctamente.\n"
+        )
+        return False
+
+    print(f"[generator] Fuente KabelHeavy OK ({size_kb} KB)")
+    return True
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generador de tablero Metropoly")
@@ -136,6 +170,8 @@ def main():
     force = args.force
     if force:
         print("[generator] Modo FORCE: se regenerarán todas las casillas y tarjetas.")
+
+    _check_fonts()
 
     cfg    = _load_config()
     colors = _get_colors()
