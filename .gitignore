@@ -1,8 +1,101 @@
-__pycache__
-repo
-steps.md
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-webdriver
-src/feria
-src/img
-src/gw
+# ── Entornos virtuales ────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Sistema operativo ─────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Editores ──────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Selenium / WebDriver ──────────────────────────────
+webdriver/
+chromedriver*
+geckodriver*
+
+# ── Imágenes scrapeadas (demasiado pesadas para el repo)
+src/img/
+
+# ── Directorio de juego generado ─────────────────────
+juego_completo/
+
+# ── Assets generados — excluir TODO excepto muestras ──
+# Nota: para poder incluir excepciones, NO se excluye el directorio
+# sino los contenidos con patrones.
+
+# Casillas: excluir todas las rotaciones excepto las 3 muestras en 0°
+repo/casillas/*_90.html
+repo/casillas/*_180.html
+repo/casillas/*_270.html
+repo/casillas/casilla_*.html
+!repo/casillas/casilla_Colonia_Moderna_0.html
+!repo/casillas/casilla_Plaza_del_Sol_0.html
+!repo/casillas/casilla_Colapso_del_Per__frico_0.html
+
+# Tarjetas: excluir todas excepto 3 muestras
+repo/tarjetas/tarjeta_*.html
+!repo/tarjetas/tarjeta_Colonia_Moderna.html
+!repo/tarjetas/tarjeta_Telcel_Jalisco.html
+!repo/tarjetas/tarjeta_Casa_de_Cambio_Centro.html
+
+# Fortunas: excluir todas excepto 1 por carril
+repo/fortunas/fortuna_*.html
+!repo/fortunas/fortuna_1_Carta_de_Pistola.html
+!repo/fortunas/fortuna_2_Dados_Cargados.html
+!repo/fortunas/fortuna_3_Banca_Popular.html
+
+# ── Sprites gw (los conseguiste tú, no se distribuyen) ─
+src/gw/
+
+# ── Billetes / feria (assets propios) ─────────────────
+src/feria/
+
+# ── Fuente KabelHeavy (propietaria) ──────────────────
+src/KabelHeavy.ttf
+src/*.ttf
+src/*.otf
+
+# ── Variables de entorno y secretos ──────────────────
+.env
+*.env
+secrets.json
+config.local.*
+
+# ── Logs ──────────────────────────────────────────────
+*.log
+logs/
+
+# ── Temporales ───────────────────────────────────────
+*.tmp
+*.temp
+tmp/
+temp/
