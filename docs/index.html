@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Metropoly — Board Game Generator</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=righteous:400&family=fira-code:400,500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════
+   TOKENS — OSCURO (default) · carpa de circo
+══════════════════════════════════════════════════════ */
+body {
+  --bg:      #0C0608;
+  --bg2:     #140A0C;
+  --bg3:     #1E1014;
+
+  --text:    #F0DEC8;
+  --text2:   #907060;
+
+  --border:  #3A1C20;
+
+  /* ── Colores de carpa — bicromáticos rojo/dorado ── */
+  --piece-i:  #C8901A;   /* dorado envejecido  */
+  --piece-o:  #E8A820;   /* oro brillante      */
+  --piece-t:  #901828;   /* rojo carmesí       */
+  --piece-s:  #B82030;   /* rojo medio         */
+  --piece-z:  #D04838;   /* rojo coral oscuro  */
+  --piece-j:  #784010;   /* marrón cálido      */
+  --piece-l:  #A86018;   /* ámbar oscuro       */
+
+  /* ── Semántico lúdico ── */
+  --play:     #C8901A;   /* en escena  · dorado   */
+  --pause:    #784010;   /* intermedio · marrón   */
+  --gameover: #901828;   /* telón      · carmesí  */
+
+  /* ── Acento ── */
+  --accent:  #C8901A;
+  --accent2: #901828;
+
+  /* ── Semánticos ── */
+  --ok:      #C8901A;
+  --warn:    #E8A820;
+  --danger:  #901828;
+
+  /* ── Neutros ── */
+  --black:   #080204;
+  --white:   #F8EED8;
+  --gray:    #604840;
+
+  /* Tipografía */
+  --display: 'Righteous', system-ui, sans-serif;
+  --mono:    'Fira Code', monospace;
+
+  --radius:    6px;
+  --radius-lg: 12px;
+
+  /* Glows — cálidos */
+  --glow-accent:  0 0 10px rgba(200,144,26,.5);
+  --glow-cyan:    0 0 10px rgba(200,144,26,.4);
+  --glow-green:   0 0 10px rgba(200,144,26,.5);
+  --glow-yellow:  0 0 10px rgba(232,168,32,.5);
+  --glow-orange:  0 0 10px rgba(168,96,24,.5);
+  --glow-red:     0 0 10px rgba(144,24,40,.6);
+  --glow-blue:    0 0 10px rgba(200,144,26,.4);
+}
+
+/* ══════════════════════════════════════════════════════
+   TOKENS — CLARO · feria de día
+══════════════════════════════════════════════════════ */
+body.light {
+  --bg:      #FFF8F0;
+  --bg2:     #FFF0E4;
+  --bg3:     #FFE4CC;
+
+  --text:    #180808;
+  --text2:   #705040;
+
+  --border:  #E0C0A0;
+
+  /* Tetrominos pastel de feria */
+  --piece-i:  #40C8D8;
+  --piece-o:  #E8C000;
+  --piece-t:  #A030D0;
+  --piece-s:  #30B030;
+  --piece-z:  #D03030;
+  --piece-j:  #2060D0;
+  --piece-l:  #E07000;
+
+  --play:     #30B030;
+  --pause:    #E8C000;
+  --gameover: #D03030;
+
+  --accent:  #A030D0;
+  --accent2: #E07000;
+
+  --ok:      #30B030;
+  --warn:    #E8C000;
+  --danger:  #D03030;
+
+  --black:   #100808;
+  --white:   #FFFCF8;
+  --gray:    #A08060;
+
+  --glow-accent:  none;
+  --glow-cyan:    none;
+  --glow-green:   none;
+  --glow-yellow:  none;
+  --glow-orange:  none;
+  --glow-red:     none;
+  --glow-blue:    none;
+}
+
+/* ══════════════════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--display);
+  font-size:15px;
+  line-height:1.7;
+  transition:background .3s,color .3s;
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ══════════════════════════════════════════════════════
+   FONDO TETRIS — canvas
+══════════════════════════════════════════════════════ */
+#ludus-tetris{
+  position:fixed;inset:0;
+  pointer-events:none;z-index:0;
+}
+
+/* ══════════════════════════════════════════════════════
+   CUBOS FLOTANTES — scene CSS
+══════════════════════════════════════════════════════ */
+#ludus-cubes{
+  position:fixed;inset:0;
+  pointer-events:none;z-index:1;
+  perspective:1500px;
+}
+
+.cube{
+  width:40px;height:40px;
+  position:absolute;
+  transform-style:preserve-3d;
+  animation:cube-spin 5s infinite linear, cube-move 10s linear forwards;
+}
+.cube div{
+  position:absolute;
+  width:40px;height:40px;
+  box-sizing:border-box;
+  opacity:.55;
+}
+.cube div:nth-child(1){transform:rotateY(  0deg) translateZ(20px)}
+.cube div:nth-child(2){transform:rotateY( 90deg) translateZ(20px)}
+.cube div:nth-child(3){transform:rotateY(180deg) translateZ(20px)}
+.cube div:nth-child(4){transform:rotateY(-90deg) translateZ(20px)}
+.cube div:nth-child(5){transform:rotateX( 90deg) translateZ(20px)}
+.cube div:nth-child(6){transform:rotateX(-90deg) translateZ(20px)}
+
+.inner-cube{
+  width:24px;height:24px;
+  transform-style:preserve-3d;
+  position:absolute;top:8px;left:8px;
+  animation:cube-spin-inner 3s infinite linear reverse;
+}
+.inner-cube div{
+  position:absolute;
+  width:24px;height:24px;
+  box-sizing:border-box;
+}
+.inner-cube div:nth-child(1){transform:rotateY(  0deg) translateZ(12px)}
+.inner-cube div:nth-child(2){transform:rotateY( 90deg) translateZ(12px)}
+.inner-cube div:nth-child(3){transform:rotateY(180deg) translateZ(12px)}
+.inner-cube div:nth-child(4){transform:rotateY(-90deg) translateZ(12px)}
+.inner-cube div:nth-child(5){transform:rotateX( 90deg) translateZ(12px)}
+.inner-cube div:nth-child(6){transform:rotateX(-90deg) translateZ(12px)}
+
+@keyframes cube-spin{
+  from{transform:rotateX(0deg) rotateY(0deg)}
+  to{transform:rotateX(360deg) rotateY(360deg)}
+}
+@keyframes cube-spin-inner{
+  from{transform:rotateX(0deg) rotateY(0deg)}
+  to{transform:rotateX(360deg) rotateY(360deg)}
+}
+@keyframes cube-move{
+  from{transform:translate(0,0) rotateX(45deg) rotateY(45deg)}
+  to{transform:translate(calc(100vw * var(--x-dir)),calc(100vh * var(--y-dir))) rotateX(405deg) rotateY(405deg)}
+}
+@keyframes cube-explode{
+  to{transform:scale(0);opacity:0}
+}
+.cube-particle{
+  position:fixed;
+  width:8px;height:8px;
+  border-radius:1px;
+  opacity:.9;
+}
+@keyframes cube-particle-fly{
+  to{transform:translate(var(--dx),var(--dy)) scale(.1);opacity:0}
+}
+
+/* ══════════════════════════════════════════════════════
+   PÁGINA
+══════════════════════════════════════════════════════ */
+.page{
+  position:relative;z-index:2;
+  padding:40px 34% 40px 34%;
+  max-width:100%;margin:0;
+}
+
+/* ══════════════════════════════════════════════════════
+   TIPOGRAFÍA
+══════════════════════════════════════════════════════ */
+h2{
+  font-family:var(--display);font-size:18px;font-weight:400;
+  color:var(--accent);text-shadow:var(--glow-accent);
+  margin:40px 0 16px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+  letter-spacing:.04em;text-transform:uppercase;
+}
+h3{
+  font-family:var(--display);font-size:13px;
+  color:var(--piece-o);text-shadow:var(--glow-yellow);
+  margin:22px 0 10px;letter-spacing:.08em;text-transform:uppercase;
+}
+h4{font-family:var(--display);font-size:14px;color:var(--text);margin-bottom:5px}
+p{margin-bottom:14px;line-height:1.8;font-family:var(--display)}
+p.muted{color:var(--text2);font-size:13px}
+
+/* ══════════════════════════════════════════════════════
+   CÓDIGO
+══════════════════════════════════════════════════════ */
+code{
+  font-family:var(--mono);font-size:12px;
+  background:var(--bg3);border:1px solid var(--border);
+  padding:1px 6px;border-radius:var(--radius);
+  color:var(--piece-i);text-shadow:var(--glow-cyan);
+}
+pre{
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:3px solid var(--accent);border-radius:var(--radius);
+  padding:14px 18px;margin:14px 0;overflow-x:auto;
+  font-family:var(--mono);font-size:12px;line-height:1.75;
+  color:var(--text);position:relative;
+}
+pre::before{content:attr(data-lang);position:absolute;top:6px;right:10px;font-size:9px;color:var(--text2);letter-spacing:.1em;text-transform:uppercase}
+pre code{background:none;border:none;padding:0;color:inherit;text-shadow:none}
+pre .kw {color:var(--piece-t)}
+pre .fn {color:var(--piece-i);text-shadow:var(--glow-cyan)}
+pre .str{color:var(--piece-s);text-shadow:var(--glow-green)}
+pre .num{color:var(--piece-o)}
+pre .cm {color:var(--text2);font-style:italic}
+
+/* ══════════════════════════════════════════════════════
+   CALLOUTS
+══════════════════════════════════════════════════════ */
+.callout{
+  border-left:3px solid var(--accent);background:var(--bg2);
+  padding:12px 16px;margin:10px 0;
+  border-radius:0 var(--radius) var(--radius) 0;
+}
+.callout-title{
+  font-family:var(--display);font-size:10px;font-weight:400;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);text-shadow:var(--glow-accent);margin-bottom:5px;
+}
+.callout p{margin-bottom:0;font-size:13px}
+.callout.ok      {border-color:var(--ok)     }.callout.ok       .callout-title{color:var(--ok);     text-shadow:var(--glow-green) }
+.callout.warn    {border-color:var(--warn)   }.callout.warn     .callout-title{color:var(--warn);   text-shadow:var(--glow-yellow)}
+.callout.danger  {border-color:var(--danger) }.callout.danger   .callout-title{color:var(--danger); text-shadow:var(--glow-red)   }
+.callout.play    {border-color:var(--play)   }.callout.play     .callout-title{color:var(--play);   text-shadow:var(--glow-green) }
+.callout.pause   {border-color:var(--pause)  }.callout.pause    .callout-title{color:var(--pause);  text-shadow:var(--glow-yellow)}
+.callout.gameover{border-color:var(--gameover)}.callout.gameover .callout-title{color:var(--gameover);text-shadow:var(--glow-red)}
+.callout.piece-i {border-color:var(--piece-i)}.callout.piece-i  .callout-title{color:var(--piece-i);text-shadow:var(--glow-cyan)  }
+.callout.piece-o {border-color:var(--piece-o)}.callout.piece-o  .callout-title{color:var(--piece-o);text-shadow:var(--glow-yellow)}
+.callout.piece-t {border-color:var(--piece-t)}.callout.piece-t  .callout-title{color:var(--piece-t);text-shadow:var(--glow-accent)}
+.callout.piece-s {border-color:var(--piece-s)}.callout.piece-s  .callout-title{color:var(--piece-s);text-shadow:var(--glow-green) }
+.callout.piece-z {border-color:var(--piece-z)}.callout.piece-z  .callout-title{color:var(--piece-z);text-shadow:var(--glow-red)   }
+.callout.piece-j {border-color:var(--piece-j)}.callout.piece-j  .callout-title{color:var(--piece-j);text-shadow:var(--glow-blue)  }
+.callout.piece-l {border-color:var(--piece-l)}.callout.piece-l  .callout-title{color:var(--piece-l);text-shadow:var(--glow-orange)}
+
+/* ══════════════════════════════════════════════════════
+   TABLA
+══════════════════════════════════════════════════════ */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th{background:var(--bg3);padding:8px 14px;text-align:left;font-family:var(--display);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:hover td{background:var(--bg3)}
+
+/* ══════════════════════════════════════════════════════
+   BOTONES
+══════════════════════════════════════════════════════ */
+.btn{
+  display:inline-block;font-family:var(--display);font-size:12px;
+  padding:7px 18px;border:1.5px solid var(--border);border-radius:var(--radius);
+  background:var(--bg2);color:var(--text2);cursor:pointer;
+  transition:all .15s;letter-spacing:.06em;text-transform:uppercase;
+}
+.btn:hover,.btn.primary{border-color:var(--accent);color:var(--accent);text-shadow:var(--glow-accent)}
+.btn.ok      {border-color:var(--ok);     color:var(--ok);     text-shadow:var(--glow-green) }
+.btn.warn    {border-color:var(--warn);   color:var(--warn);   text-shadow:var(--glow-yellow)}
+.btn.danger  {border-color:var(--danger); color:var(--danger); text-shadow:var(--glow-red)   }
+.btn.play    {border-color:var(--play);   color:var(--play);   text-shadow:var(--glow-green) }
+.btn.pause   {border-color:var(--pause);  color:var(--pause);  text-shadow:var(--glow-yellow)}
+.btn.piece-i {border-color:var(--piece-i);color:var(--piece-i);text-shadow:var(--glow-cyan)  }
+.btn.piece-t {border-color:var(--piece-t);color:var(--piece-t);text-shadow:var(--glow-accent)}
+.btn.piece-s {border-color:var(--piece-s);color:var(--piece-s);text-shadow:var(--glow-green) }
+.btn.piece-l {border-color:var(--piece-l);color:var(--piece-l);text-shadow:var(--glow-orange)}
+
+/* ══════════════════════════════════════════════════════
+   BADGES
+══════════════════════════════════════════════════════ */
+.badge{
+  display:inline-block;font-family:var(--display);font-size:9px;
+  padding:2px 9px;border:1.5px solid var(--border);border-radius:var(--radius);
+  color:var(--text2);letter-spacing:.08em;text-transform:uppercase;
+}
+.badge.accent  {border-color:var(--accent);  color:var(--accent);  text-shadow:var(--glow-accent)}
+.badge.ok      {border-color:var(--ok);      color:var(--ok);      text-shadow:var(--glow-green) }
+.badge.warn    {border-color:var(--warn);     color:var(--warn);    text-shadow:var(--glow-yellow)}
+.badge.danger  {border-color:var(--danger);   color:var(--danger);  text-shadow:var(--glow-red)   }
+.badge.play    {border-color:var(--play);     color:var(--play);    text-shadow:var(--glow-green) }
+.badge.pause   {border-color:var(--pause);    color:var(--pause);   text-shadow:var(--glow-yellow)}
+.badge.gameover{border-color:var(--gameover); color:var(--gameover);text-shadow:var(--glow-red)   }
+.badge.piece-i {border-color:var(--piece-i);  color:var(--piece-i); text-shadow:var(--glow-cyan)  }
+.badge.piece-o {border-color:var(--piece-o);  color:var(--piece-o); text-shadow:var(--glow-yellow)}
+.badge.piece-t {border-color:var(--piece-t);  color:var(--piece-t); text-shadow:var(--glow-accent)}
+.badge.piece-s {border-color:var(--piece-s);  color:var(--piece-s); text-shadow:var(--glow-green) }
+.badge.piece-z {border-color:var(--piece-z);  color:var(--piece-z); text-shadow:var(--glow-red)   }
+.badge.piece-j {border-color:var(--piece-j);  color:var(--piece-j); text-shadow:var(--glow-blue)  }
+.badge.piece-l {border-color:var(--piece-l);  color:var(--piece-l); text-shadow:var(--glow-orange)}
+
+/* ══════════════════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════════════════ */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.card:hover{border-color:var(--accent);box-shadow:var(--glow-accent)}
+
+/* ══════════════════════════════════════════════════════
+   MÉTRICAS
+══════════════════════════════════════════════════════ */
+.metrics-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.metric{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px 16px;flex:1;min-width:100px;
+  transition:box-shadow .2s;
+}
+.metric:hover{box-shadow:var(--glow-accent)}
+.metric-val{font-family:var(--display);font-size:24px;color:var(--accent);text-shadow:var(--glow-accent)}
+.metric-lbl{font-family:var(--display);font-size:10px;color:var(--text2);margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+.metric-val.piece-i{color:var(--piece-i);text-shadow:var(--glow-cyan)  }
+.metric-val.piece-o{color:var(--piece-o);text-shadow:var(--glow-yellow)}
+.metric-val.piece-t{color:var(--piece-t);text-shadow:var(--glow-accent)}
+.metric-val.piece-s{color:var(--piece-s);text-shadow:var(--glow-green) }
+.metric-val.piece-l{color:var(--piece-l);text-shadow:var(--glow-orange)}
+.metric-val.ok     {color:var(--ok);     text-shadow:var(--glow-green) }
+.metric-val.danger {color:var(--danger); text-shadow:var(--glow-red)   }
+
+/* ══════════════════════════════════════════════════════
+   DIVIDER
+══════════════════════════════════════════════════════ */
+hr.divider{border:none;border-top:1px solid var(--border);margin:28px 0}
+
+/* ══════════════════════════════════════════════════════
+   LEVEL LOG — análogo al timeline
+   Indicadores en forma de bloque L (tetromino)
+══════════════════════════════════════════════════════ */
+.level-log{margin:14px 0}
+.level-entry{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.level-entry:last-child{border-bottom:none}
+.level-dot{
+  width:28px;height:28px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:11px;margin-top:2px;
+  border:1.5px solid var(--border);color:var(--text2);background:var(--bg3);
+  border-radius:var(--radius);
+  /* forma de bloque L */
+  clip-path:polygon(0% 0%,60% 0%,60% 40%,100% 40%,100% 100%,0% 100%);
+}
+.level-dot.play    {border-color:var(--play);    color:var(--play);    background:color-mix(in srgb,var(--play)     12%,transparent);text-shadow:var(--glow-green) }
+.level-dot.pause   {border-color:var(--pause);   color:var(--pause);   background:color-mix(in srgb,var(--pause)    12%,transparent);text-shadow:var(--glow-yellow)}
+.level-dot.gameover{border-color:var(--gameover);color:var(--gameover);background:color-mix(in srgb,var(--gameover) 12%,transparent);text-shadow:var(--glow-red)   }
+.level-dot.warn    {border-color:var(--warn);    color:var(--warn);    background:color-mix(in srgb,var(--warn)     12%,transparent);text-shadow:var(--glow-yellow)}
+
+/* ══════════════════════════════════════════════════════
+   STAGE STEPS — análogo a pipeline/step-row
+══════════════════════════════════════════════════════ */
+.stage-row{
+  display:flex;gap:16px;align-items:flex-start;
+  margin:10px 0;padding:14px 16px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:3px solid var(--accent);border-radius:var(--radius);
+  transition:box-shadow .15s;
+}
+.stage-row:hover{box-shadow:var(--glow-accent)}
+.stage-num{
+  font-family:var(--display);font-size:20px;
+  color:var(--accent);text-shadow:var(--glow-accent);
+  min-width:32px;line-height:1;margin-top:2px;
+}
+
+/* ══════════════════════════════════════════════════════
+   THEME TOGGLE
+══════════════════════════════════════════════════════ */
+.theme-btn{
+  font-family:var(--display);font-size:11px;
+  padding:6px 16px;background:none;
+  border:1.5px solid var(--border);border-radius:var(--radius);
+  color:var(--text2);cursor:pointer;transition:all .15s;
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);text-shadow:var(--glow-accent)}
+
+/* ══════════════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════════════ */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr}}
+.swatch-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.swatch{width:84px;text-align:center;font-family:var(--mono);font-size:9px;color:var(--text2)}
+.swatch-box{height:48px;border-radius:var(--radius);margin-bottom:6px;border:1px solid var(--border);position:relative}
+.swatch-hex{position:absolute;bottom:4px;left:5px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.75);mix-blend-mode:difference;letter-spacing:-.3px;line-height:1;pointer-events:none}
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:20;height:48px;
+  background:rgba(12,6,8,.85);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;}
+.nav-logo{font-family:var(--display);font-size:18px;color:var(--piece-o);
+  text-shadow:var(--glow-yellow);letter-spacing:.04em;text-decoration:none;}
+.nav-links{display:flex;gap:4px;align-items:center;}
+.nav-link{font-family:var(--display);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text2);text-decoration:none;
+  padding:5px 12px;border:1px solid transparent;border-radius:var(--radius);
+  transition:all .15s;}
+.nav-link:hover,.nav-link.active{border-color:var(--border);color:var(--accent);
+  text-shadow:var(--glow-accent);}
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:80px 40px 60px;
+  position:relative;z-index:2;}
+.hero-title{font-family:var(--display);font-size:clamp(52px,11vw,110px);
+  color:var(--piece-o);text-shadow:var(--glow-yellow);line-height:1;
+  letter-spacing:.04em;}
+.hero-sub{font-family:var(--display);font-size:13px;letter-spacing:.25em;
+  text-transform:uppercase;color:var(--text2);margin-top:10px;}
+.hero-rings{display:flex;gap:12px;justify-content:center;margin:28px 0;}
+.ring{width:14px;height:14px;border-radius:50%;border:2.5px solid;}
+.ring.b{border-color:#1E88E5;background:rgba(30,136,229,.2);}
+.ring.y{border-color:var(--piece-o);background:rgba(232,168,32,.2);}
+.ring.r{border-color:var(--piece-t);background:rgba(144,24,40,.2);}
+.hero-desc{max-width:520px;color:var(--text2);font-size:14px;line-height:1.8;margin-bottom:32px;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{font-family:var(--display);font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;padding:10px 24px;border:1.5px solid var(--piece-o);
+  border-radius:var(--radius);color:var(--piece-o);text-shadow:var(--glow-yellow);
+  text-decoration:none;transition:all .15s;background:rgba(232,168,32,.08);}
+.btn-primary:hover{background:rgba(232,168,32,.18);box-shadow:var(--glow-yellow);}
+.btn-ghost{font-family:var(--display);font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;padding:10px 24px;border:1.5px solid var(--border);
+  border-radius:var(--radius);color:var(--text2);text-decoration:none;transition:all .15s;}
+.btn-ghost:hover{border-color:var(--text2);color:var(--text);}
+/* ── PAGE ── */
+.page{position:relative;z-index:2;max-width:860px;margin:0 auto;padding:60px 32px 80px;}
+/* ── METRICS ── */
+.metrics-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 20px;flex:1;min-width:120px;transition:box-shadow .2s;}
+.metric:hover{box-shadow:var(--glow-accent);}
+.metric-val{font-family:var(--display);font-size:28px;color:var(--accent);text-shadow:var(--glow-accent);}
+.metric-lbl{font-family:var(--display);font-size:10px;color:var(--text2);margin-top:4px;
+  letter-spacing:.06em;text-transform:uppercase;}
+/* ── FEATURES ── */
+.features{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:14px 0;}
+.feature{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;transition:border-color .2s,box-shadow .2s;}
+.feature:hover{border-color:var(--accent);box-shadow:var(--glow-accent);}
+.feature-icon{font-size:24px;margin-bottom:8px;}
+.feature-title{font-family:var(--display);font-size:13px;color:var(--white);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.feature-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+/* ── SAMPLES TABLE ── */
+.samples-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;}
+.samples-table th{background:var(--bg3);padding:8px 14px;text-align:left;
+  font-family:var(--display);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border);}
+.samples-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.samples-table tr:hover td{background:var(--bg3);}
+.sample-link{color:var(--piece-i);text-shadow:var(--glow-cyan);text-decoration:none;
+  font-family:var(--mono);font-size:12px;transition:color .15s;}
+.sample-link:hover{color:var(--piece-o);text-shadow:var(--glow-yellow);}
+/* ── FOOTER ── */
+footer{text-align:center;padding:32px;font-size:11px;color:var(--border);
+  letter-spacing:.1em;text-transform:uppercase;position:relative;z-index:2;}
+</style>
+</head>
+<body>
+
+<canvas id="ludus-tetris"></canvas>
+<div id="ludus-cubes"></div>
+
+<nav>
+  <a class="nav-logo" href="index.html">METROPOLY</a>
+  <div class="nav-links">
+    <a class="nav-link active" href="index.html">Home</a>
+    <a class="nav-link" href="api.html">Docs</a>
+    <a class="nav-link" href="board.html">Board</a>
+    <a class="nav-link" href="https://github.com/RemiH06/Metropoly" target="_blank">GitHub ↗</a>
+    <button class="theme-btn" id="toggle-btn" onclick="toggleTheme()">☀ light</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-title">METROPOLY</div>
+  <div class="hero-sub">Board Game Generator · Guadalajara Metropolitan Area</div>
+  <div class="hero-rings">
+    <div class="ring b"></div>
+    <div class="ring y"></div>
+    <div class="ring r"></div>
+  </div>
+  <p class="hero-desc">
+    A Python-powered Monopoly-style board game generator set in the ZMG.
+    Generates print-ready HTML assets — board, property cards, fortune decks
+    and a full rulebook — from a single CSV file.
+  </p>
+  <div class="hero-btns">
+    <a class="btn-primary" href="board.html">View Board Demo</a>
+    <a class="btn-ghost" href="api.html">Documentation</a>
+    <a class="btn-ghost" href="https://github.com/RemiH06/Metropoly" target="_blank">GitHub</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- METRICS -->
+  <h2>By the numbers</h2>
+  <div class="metrics-row">
+    <div class="metric"><div class="metric-val">106</div><div class="metric-lbl">Tiles</div></div>
+    <div class="metric"><div class="metric-val piece-i" style="color:var(--piece-i);text-shadow:var(--glow-cyan)">119</div><div class="metric-lbl">Fortune Cards</div></div>
+    <div class="metric"><div class="metric-val piece-o" style="color:var(--piece-o);text-shadow:var(--glow-yellow)">16</div><div class="metric-lbl">Tile Types</div></div>
+    <div class="metric"><div class="metric-val piece-t" style="color:var(--piece-t);text-shadow:var(--glow-red)">12</div><div class="metric-lbl">Companies</div></div>
+    <div class="metric"><div class="metric-val ok" style="color:var(--ok);text-shadow:var(--glow-green)">3</div><div class="metric-lbl">Lanes</div></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- FEATURES -->
+  <h2>Features</h2>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🗺️</div>
+      <div class="feature-title">3-Ring Board</div>
+      <div class="feature-desc">Blue (40), yellow (36) and red (32) concentric lanes generated from a config file.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎨</div>
+      <div class="feature-title">Auto Color System</div>
+      <div class="feature-desc">13 color groups assigned by price order. No manual configuration needed.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🖼️</div>
+      <div class="feature-title">Image Scraper</div>
+      <div class="feature-desc">Optional Selenium scraper fetches local photography for each tile automatically.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎴</div>
+      <div class="feature-title">Fortune Decks</div>
+      <div class="feature-desc">119 unique fortune cards across 3 lane-specific decks, levels 1–5 balanced.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🏢</div>
+      <div class="feature-title">12 Companies</div>
+      <div class="feature-desc">Each company has a unique permanent effect — from controlling the jail to taxing all transactions.</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📦</div>
+      <div class="feature-title">gameFactory</div>
+      <div class="feature-desc">One command assembles the complete print-ready game directory with index page.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- QUICK START -->
+  <h2>Quick start</h2>
+  <div class="stage-row">
+    <div class="stage-num">1</div>
+    <div>
+      <h4 style="font-family:var(--display);color:var(--text);font-size:14px;margin-bottom:4px;">Clone & install</h4>
+      <pre data-lang="bash">git clone https://github.com/RemiH06/Metropoly.git
+cd Metropoly
+pip install -r requirements.txt</pre>
+    </div>
+  </div>
+  <div class="stage-row">
+    <div class="stage-num">2</div>
+    <div>
+      <h4 style="font-family:var(--display);color:var(--text);font-size:14px;margin-bottom:4px;">Generate everything</h4>
+      <pre data-lang="bash">python generator.py</pre>
+    </div>
+  </div>
+  <div class="stage-row">
+    <div class="stage-num">3</div>
+    <div>
+      <h4 style="font-family:var(--display);color:var(--text);font-size:14px;margin-bottom:4px;">Assemble print directory</h4>
+      <pre data-lang="bash">python gameFactory.py</pre>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px;">Open <code>juego_completo/indice.html</code> to access all game files.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SAMPLES -->
+  <h2>Samples</h2>
+
+  <h3>Tiles</h3>
+  <table class="samples-table">
+    <thead><tr><th>Lane</th><th>Name</th><th>Type</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge piece-i">Blue</span></td><td>Colonia Moderna</td><td>Property · brown group</td><td><a class="sample-link" href="samples/casillas/casilla_Colonia_Moderna_0.html" target="_blank">casilla_Colonia_Moderna_0.html ↗</a></td></tr>
+      <tr><td><span class="badge piece-o">Yellow</span></td><td>Plaza del Sol</td><td>Business</td><td><a class="sample-link" href="samples/casillas/casilla_Plaza_del_Sol_0.html" target="_blank">casilla_Plaza_del_Sol_0.html ↗</a></td></tr>
+      <tr><td><span class="badge piece-t">Red</span></td><td>Colapso del Periférico</td><td>Fortune</td><td><a class="sample-link" href="samples/casillas/casilla_Colapso_del_Periférico_0.html" target="_blank">casilla_Colapso_del_Periférico_0.html ↗</a></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Property Cards</h3>
+  <table class="samples-table">
+    <thead><tr><th>Lane</th><th>Name</th><th>Type</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge piece-i">Blue</span></td><td>Colonia Moderna</td><td>Property</td><td><a class="sample-link" href="samples/tarjetas/tarjeta_Colonia_Moderna.html" target="_blank">tarjeta_Colonia_Moderna.html ↗</a></td></tr>
+      <tr><td><span class="badge piece-i">Blue</span></td><td>Telcel Jalisco</td><td>Company · Telephony</td><td><a class="sample-link" href="samples/tarjetas/tarjeta_Telcel_Jalisco.html" target="_blank">tarjeta_Telcel_Jalisco.html ↗</a></td></tr>
+      <tr><td><span class="badge piece-t">Red</span></td><td>Casa de Cambio Centro</td><td>Exchange House</td><td><a class="sample-link" href="samples/tarjetas/tarjeta_Casa_de_Cambio_Centro.html" target="_blank">tarjeta_Casa_de_Cambio_Centro.html ↗</a></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fortune Cards</h3>
+  <table class="samples-table">
+    <thead><tr><th>Lane</th><th>Name</th><th>Level</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge piece-i">Blue</span></td><td>Carta de Pistola</td><td><span class="badge warn">4</span></td><td><a class="sample-link" href="samples/fortunas/fortuna_1_Carta_de_Pistola.html" target="_blank">fortuna_1_Carta_de_Pistola.html ↗</a></td></tr>
+      <tr><td><span class="badge piece-o">Yellow</span></td><td>Dados Cargados</td><td><span class="badge ok">4</span></td><td><a class="sample-link" href="samples/fortunas/fortuna_2_Dados_Cargados.html" target="_blank">fortuna_2_Dados_Cargados.html ↗</a></td></tr>
+      <tr><td><span class="badge piece-t">Red</span></td><td>Banca Popular</td><td><span class="badge piece-i">5</span></td><td><a class="sample-link" href="samples/fortunas/fortuna_3_Banca_Popular.html" target="_blank">fortuna_3_Banca_Popular.html ↗</a></td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>Metropoly · ZMG Edition · RemiH06 · MIT License</footer>
+
+<script>
+// ── Toggle ─────────────────────────────────────────────
+let isLight = false;
+function toggleTheme() {
+  isLight = !isLight;
+  document.body.classList.toggle('light', isLight);
+  document.getElementById('toggle-btn').textContent = isLight ? '🌙 dark' : '☀ light';
+  updateHexes();
+  buildTetris();
+}
+
+// ── Hexes ──────────────────────────────────────────────
+function cssVar(n) { return getComputedStyle(document.body).getPropertyValue(n).trim(); }
+function updateHexes() {
+  const map = {
+    'hex-i':'--piece-i','hex-o':'--piece-o','hex-t':'--piece-t',
+    'hex-s':'--piece-s','hex-z':'--piece-z','hex-j':'--piece-j','hex-l':'--piece-l',
+    'hex-play':'--play','hex-pause':'--pause','hex-go':'--gameover','hex-accent':'--accent',
+    'hex-black':'--black','hex-gray':'--gray','hex-white':'--white',
+    'hex-ok':'--ok','hex-warn':'--warn','hex-danger':'--danger',
+  };
+  Object.entries(map).forEach(([id,tok]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = cssVar(tok);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// FONDO TETRIS — tablero lleno con piezas reales
+// ══════════════════════════════════════════════════════
+const tetrisCanvas = document.getElementById('ludus-tetris');
+const tCtx = tetrisCanvas.getContext('2d');
+
+// Definición de tetrominos (rotación 0)
+const TETROMINOS = {
+  I: [[1,1,1,1]],
+  O: [[1,1],[1,1]],
+  T: [[0,1,0],[1,1,1]],
+  S: [[0,1,1],[1,1,0]],
+  Z: [[1,1,0],[0,1,1]],
+  J: [[1,0,0],[1,1,1]],
+  L: [[0,0,1],[1,1,1]],
+};
+
+function getPieceColor(type) {
+  const map = {I:'--piece-i',O:'--piece-o',T:'--piece-t',S:'--piece-s',Z:'--piece-z',J:'--piece-j',L:'--piece-l'};
+  return cssVar(map[type]);
+}
+
+function buildTetris() {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  tetrisCanvas.width  = W;
+  tetrisCanvas.height = H;
+
+  const CELL = 22;
+  const COLS = Math.ceil(W / CELL) + 2;
+  const ROWS = Math.ceil(H / CELL) + 2;
+
+  // Crear un tablero lleno con piezas aleatorias
+  // Usamos una grilla y colocamos piezas hasta llenarla
+  const board   = Array.from({length:ROWS}, () => Array(COLS).fill(null));
+  const types   = Object.keys(TETROMINOS);
+
+  // Llenar por filas de arriba a abajo
+  for (let r = 0; r < ROWS; r++) {
+    let c = 0;
+    while (c < COLS) {
+      const type  = types[Math.floor(Math.random() * types.length)];
+      const shape = TETROMINOS[type];
+      const sw    = shape[0].length;
+      const sh    = shape.length;
+
+      // Intentar colocar la pieza
+      let fits = true;
+      for (let dr = 0; dr < sh && fits; dr++)
+        for (let dc = 0; dc < sw && fits; dc++)
+          if (shape[dr][dc] && (r+dr >= ROWS || c+dc >= COLS || board[r+dr][c+dc]))
+            fits = false;
+
+      if (fits) {
+        for (let dr = 0; dr < sh; dr++)
+          for (let dc = 0; dc < sw; dc++)
+            if (shape[dr][dc]) board[r+dr][c+dc] = type;
+        c += sw;
+      } else {
+        // Forzar un cuadrado 1×1 para no dejar huecos
+        if (!board[r][c]) board[r][c] = types[Math.floor(Math.random() * types.length)];
+        c++;
+      }
+    }
+  }
+
+  // Dibujar — bicromático en oscuro (solo rojo y dorado), multicolor en claro
+  tCtx.clearRect(0, 0, W, H);
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const type = board[r][c];
+      if (!type) continue;
+      const color = isLight ? getPieceColor(type) :
+        ((r + c) % 2 === 0 ? '#901828' : '#C8901A'); // bicromático carpa
+      const x = c * CELL, y = r * CELL;
+      tCtx.globalAlpha = isLight ? 0.18 : 0.14;
+      tCtx.fillStyle   = color;
+      tCtx.fillRect(x+1, y+1, CELL-2, CELL-2);
+      tCtx.globalAlpha = isLight ? 0.35 : 0.28;
+      tCtx.strokeStyle = color;
+      tCtx.lineWidth   = 0.8;
+      tCtx.strokeRect(x+1, y+1, CELL-2, CELL-2);
+    }
+  }
+  tCtx.globalAlpha = 1;
+
+  // ── Spotlight estático (solo oscuro) ──
+  if (!isLight) {
+    const sx = W * (0.25 + Math.random() * 0.5); // posición aleatoria fija al cargar
+    const sg = tCtx.createRadialGradient(sx, -H*0.1, 0, sx, H*0.5, H*0.85);
+    sg.addColorStop(0,   'rgba(240,200,80,0.09)');
+    sg.addColorStop(0.35,'rgba(220,160,40,0.05)');
+    sg.addColorStop(1,   'rgba(200,120,20,0)');
+    tCtx.fillStyle = sg;
+    tCtx.fillRect(0, 0, W, H);
+
+    const curtainW = W * 0.335;
+    const curtainH = H;
+    const stripes  = 12;
+    const stripeW  = curtainW / stripes;
+    const crimson  = '#901828';
+    const cream    = '#F0E8D8';
+
+    function drawCurtain(ctx, cW, cH, flipX) {
+      const sW = cW / stripes;
+      ctx.save();
+      if (flipX) { ctx.scale(-1, 1); ctx.translate(-cW, 0); }
+
+      const cx = cW * 1.00;
+
+      // Galón
+      for (let i = 0; i < stripes; i++) {
+        ctx.beginPath(); ctx.rect(i*sW, 0, sW, cH*0.05);
+        ctx.fillStyle = i%2===0 ? crimson : cream;
+        ctx.globalAlpha = 0.97; ctx.fill();
+      }
+      for (let i = 0; i < stripes; i++) {
+        ctx.beginPath();
+        ctx.arc(i*sW+sW/2, cH*0.05, sW*0.55, 0, Math.PI);
+        ctx.fillStyle = i%2===0 ? cream : crimson;
+        ctx.globalAlpha = 0.94; ctx.fill();
+      }
+
+      // Superior convergente
+      for (let i = 0; i < stripes; i++) {
+        const topX0=i*sW, topX1=(i+1)*sW;
+        const botX0=cx+(topX0-cx)*0.1, botX1=cx+(topX1-cx)*0.1;
+        const midH=cH*0.50;
+        ctx.beginPath();
+        ctx.moveTo(topX0,cH*0.05); ctx.lineTo(topX1,cH*0.05);
+        ctx.bezierCurveTo(topX1,cH*0.2,botX1+6,midH*0.82,botX1,midH);
+        ctx.lineTo(botX0,midH);
+        ctx.bezierCurveTo(botX0-6,midH*0.82,topX0,cH*0.2,topX0,cH*0.05);
+        ctx.closePath();
+        ctx.fillStyle = i%2===0 ? crimson : cream;
+        ctx.globalAlpha = 0.90; ctx.fill();
+      }
+
+      // Inferior divergente
+      for (let i = 0; i < stripes; i++) {
+        const topX0=cx+(i*sW-cx)*0.1, topX1=cx+((i+1)*sW-cx)*0.1;
+        const botX0=i*sW, botX1=(i+1)*sW;
+        const topH=cH*0.50;
+        ctx.beginPath();
+        ctx.moveTo(topX0,topH); ctx.lineTo(topX1,topH);
+        ctx.bezierCurveTo(topX1-4,topH+cH*0.18,botX1,cH*0.88,botX1,cH);
+        ctx.lineTo(botX0,cH);
+        ctx.bezierCurveTo(botX0,cH*0.88,topX0+4,topH+cH*0.18,topX0,topH);
+        ctx.closePath();
+        ctx.fillStyle = i%2===0 ? crimson : cream;
+        ctx.globalAlpha = 0.90; ctx.fill();
+      }
+
+      ctx.globalAlpha = 1; ctx.restore();
+    }
+
+    const offsetX = W * 0.010;
+
+    // Derecha
+    tCtx.save();
+    tCtx.translate(W - curtainW + offsetX, 0);
+    drawCurtain(tCtx, curtainW, curtainH, false);
+    tCtx.restore();
+
+    // Izquierda (mirror)
+    tCtx.save();
+    tCtx.translate(-offsetX, 0);
+    drawCurtain(tCtx, curtainW, curtainH, true);
+    tCtx.restore();
+  }
+}
+
+window.addEventListener('resize', buildTetris);
+buildTetris();
+
+// ── Polvo dorado (modo oscuro) ──────────────────────
+const dustCanvas = document.createElement('canvas');
+dustCanvas.style.cssText = 'position:fixed;inset:0;z-index:1;pointer-events:none';
+document.body.insertBefore(dustCanvas, document.querySelector('.page'));
+const dCtx = dustCanvas.getContext('2d');
+let dustParticles = [];
+
+function makeDust() {
+  return {
+    x:     Math.random() * window.innerWidth,
+    y:     Math.random() * window.innerHeight,
+    vx:    (Math.random() - 0.5) * 0.3,
+    vy:   -(0.1 + Math.random() * 0.25),
+    r:     0.5 + Math.random() * 1.2,
+    alpha: 0.2 + Math.random() * 0.5,
+    flicker: Math.random() * Math.PI * 2,
+    flickerSpeed: 0.02 + Math.random() * 0.04,
+    col: Math.random() < 0.6 ? '#E8A820' : '#C8901A',
+  };
+}
+
+function drawDust() {
+  const W = dustCanvas.width  = window.innerWidth;
+  const H = dustCanvas.height = window.innerHeight;
+  dCtx.clearRect(0,0,W,H);
+
+  if (isLight) { requestAnimationFrame(drawDust); return; }
+
+  if (dustParticles.length < 80) dustParticles.push(makeDust());
+
+  dustParticles = dustParticles.filter(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.flicker += p.flickerSpeed;
+    const fa = p.alpha * (0.6 + Math.sin(p.flicker) * 0.4);
+    dCtx.save();
+    dCtx.shadowColor = p.col;
+    dCtx.shadowBlur  = 4;
+    dCtx.beginPath(); dCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    dCtx.fillStyle = p.col; dCtx.globalAlpha = fa; dCtx.fill();
+    dCtx.restore();
+    if (p.y < -5) { Object.assign(p, makeDust(), {y: H+5}); }
+    return true;
+  });
+
+  requestAnimationFrame(drawDust);
+}
+requestAnimationFrame(drawDust);
+
+// ══════════════════════════════════════════════════════
+// CUBOS FLOTANTES — paleta de ludus
+// ══════════════════════════════════════════════════════
+const cubeScene = document.getElementById('ludus-cubes');
+const LUDUS_COLORS = [
+  '--piece-i','--piece-o','--piece-t','--piece-s',
+  '--piece-z','--piece-j','--piece-l',
+];
+
+function getLudusColor() {
+  const tok = LUDUS_COLORS[Math.floor(Math.random() * LUDUS_COLORS.length)];
+  return cssVar(tok);
+}
+
+function createParticles(cube, color) {
+  const rect = cube.getBoundingClientRect();
+  const particles = [];
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'cube-particle';
+    p.style.left  = rect.left + rect.width  / 2 + 'px';
+    p.style.top   = rect.top  + rect.height / 2 + 'px';
+    p.style.backgroundColor = color;
+    p.style.setProperty('--dx', (Math.random() - .5) * 100 + 'px');
+    p.style.setProperty('--dy', (Math.random() - .5) * 100 + 'px');
+    p.style.animation = 'cube-particle-fly .5s forwards';
+    document.body.appendChild(p);
+    particles.push(p);
+  }
+  setTimeout(() => particles.forEach(p => p.remove()), 500);
+}
+
+function createCube() {
+  const cube  = document.createElement('div');
+  cube.className = 'cube';
+  const color = getLudusColor();
+  const innerColor = getLudusColor();
+
+  for (let i = 0; i < 6; i++) {
+    const face = document.createElement('div');
+    face.style.background = color;
+    face.style.border = `2px solid ${color}`;
+    cube.appendChild(face);
+  }
+
+  const inner = document.createElement('div');
+  inner.className = 'inner-cube';
+  for (let i = 0; i < 6; i++) {
+    const face = document.createElement('div');
+    face.style.background = innerColor;
+    face.style.border = `2px solid ${innerColor}`;
+    inner.appendChild(face);
+  }
+  cube.appendChild(inner);
+
+  const xDir = Math.random() * 2 - 1;
+  const yDir = Math.random() * 2 - 1;
+  cube.style.setProperty('--x-dir', xDir);
+  cube.style.setProperty('--y-dir', yDir);
+  cube.style.left = Math.random() * 100 + 'vw';
+  cube.style.top  = Math.random() * 100 + 'vh';
+
+  const spinDur = (Math.random() * 3 + 2).toFixed(1) + 's';
+  const moveDur = (Math.random() * 5 + 7).toFixed(1) + 's';
+  cube.style.animationDuration = `${spinDur}, ${moveDur}`;
+
+  cubeScene.appendChild(cube);
+
+  setTimeout(() => {
+    cube.style.animation = 'cube-explode .5s forwards';
+    setTimeout(() => {
+      createParticles(cube, color);
+      cube.remove();
+    }, 500);
+  }, parseFloat(moveDur) * 1000);
+}
+
+setInterval(createCube, 200);
+
+updateHexes();
+</script>
+</body>
+</html>

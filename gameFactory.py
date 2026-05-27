@@ -374,7 +374,55 @@ def ensamblar():
     else:
         print(f"  ⚠️  Instructivo no encontrado: {inst_src}")
 
-    # ── Índice ─────────────────────────────────────────────────────────────
+    # ── docs/board.html — inline the board ────────────────────────────────
+    board_src  = _HERE / "repo" / "tableros" / "tablero_metropoly.html"
+    board_doc  = _HERE / "docs" / "board.html"
+    if board_src.exists() and board_doc.exists():
+        with open(board_src, encoding="utf-8") as f:
+            board_html = f.read()
+        # Extract just the body content
+        import re as _re
+        body_match = _re.search(r"<body[^>]*>(.*?)</body>", board_html, _re.DOTALL | _re.IGNORECASE)
+        board_body = body_match.group(1).strip() if body_match else board_html
+        with open(board_doc, encoding="utf-8") as f:
+            doc = f.read()
+        doc = doc.replace("<!-- BOARD_INLINE_PLACEHOLDER -->", board_body)
+        with open(board_doc, "w", encoding="utf-8") as f:
+            f.write(doc)
+        print(f"  ✓ docs/board.html: tablero inlineado")
+    else:
+        print(f"  ⚠️  Board not inlined (tablero_metropoly.html not found)")
+    SAMPLES = {
+        "casillas": [
+            "casilla_Colonia_Moderna_0.html",
+            "casilla_Plaza_del_Sol_0.html",
+            "casilla_Colapso_del_Periférico_0.html",
+        ],
+        "tarjetas": [
+            "tarjeta_Colonia_Moderna.html",
+            "tarjeta_Telcel_Jalisco.html",
+            "tarjeta_Casa_de_Cambio_Centro.html",
+        ],
+        "fortunas": [
+            "fortuna_1_Carta_de_Pistola.html",
+            "fortuna_2_Dados_Cargados.html",
+            "fortuna_3_Banca_Popular.html",
+        ],
+    }
+    docs_samples = _HERE / "docs" / "samples"
+    samples_copied = 0
+    for subdir, files in SAMPLES.items():
+        src_dir = _HERE / "repo" / subdir
+        dst_dir = docs_samples / subdir
+        _mkdir(dst_dir)
+        for fname in files:
+            src = src_dir / fname
+            if src.exists():
+                _copy(src, dst_dir / fname)
+                samples_copied += 1
+            else:
+                print(f"  ⚠️  Sample not found: {src}")
+    print(f"  ✓ docs/samples: {samples_copied} archivos")
     index_html = _build_index(stats)
     (_OUT / "indice.html").write_text(index_html, encoding="utf-8")
     print(f"  ✓ Índice generado")

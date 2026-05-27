@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>@font-face {
+    font-family: 'KabelHeavy';
+    src: url('../../../src/KabelHeavy.ttf') format('truetype');
+}</style>
+<style>
+    *, *::before, *::after {
+        box-sizing: border-box; margin: 0; padding: 0;
+        font-family: 'KabelHeavy', 'Century Gothic', 'Futura', sans-serif;
+    }
+    html, body {
+        width: 350px; height: 200px;
+        overflow: hidden; background: transparent;
+    }
+    .card {
+        width: 350px; height: 200px;
+        border: 2.5px solid #010101;
+        display: flex; flex-direction: column;
+        overflow: hidden; background: #CDE6D0;
+    }
+    .card__header {
+        width: 100%; height: 32px;
+        background: #0072BB;
+        border-bottom: 1.5px solid #010101;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .card__header span {
+        font-size: 11px; letter-spacing: 0.12em;
+        text-transform: uppercase; color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    .card__body {
+        flex: 1; display: flex; flex-direction: row;
+        overflow: hidden;
+    }
+    .card__sprite {
+        width: 110px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        border-right: 1px solid #01010122;
+        padding: 8px;
+    }
+    .card__content {
+        flex: 1; padding: 10px 12px 8px;
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .card__nombre {
+        font-size: 13px; font-weight: 900;
+        text-transform: uppercase;
+        color: #010101;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+        margin-bottom: 6px;
+    }
+    .card__efecto {
+        font-size: 10.5px; color: #010101;
+        line-height: 1.4; flex: 1;
+        opacity: 0.85;
+    }
+    .card__nivel {
+        margin-top: 6px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .card__stars {
+        font-size: 13px; color: #1FB25A;
+        letter-spacing: 1px;
+    }
+    .card__nivel-label {
+        font-size: 9px; opacity: 0.5;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        color: #010101;
+    }
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="card__header">
+        <span>Fortuna Azul</span>
+    </div>
+    <div class="card__body">
+        <div class="card__sprite">
+            <img src="../../src/gw/gw_14.png" alt="nivel 4" style="width:80px;height:80px;object-fit:contain;">
+        </div>
+        <div class="card__content">
+            <div class="card__nombre">Carta de Pistola</div>
+            <div class="card__efecto">Guarda esta carta. Al caer en la misma casilla que otro jugador puedes asaltarlo: envíalo al hospital· roba su dinero o una propiedad.</div>
+            <div class="card__nivel">
+                <span class="card__stars">★★★★☆</span>
+                <span class="card__nivel-label">Nivel 4</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
