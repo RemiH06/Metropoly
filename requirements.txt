@@ -1,0 +1,19 @@
+# Metropoly — requirements.txt
+# Install with: pip install -r requirements.txt
+
+# HTML parsing (palette, card templates)
+beautifulsoup4>=4.12.0
+
+# Data manipulation (CSV loading, tile sorting)
+pandas>=2.0.0
+
+# Image processing (scraper thumbnails)
+Pillow>=10.0.0
+
+# HTTP requests (scraper fallback)
+requests>=2.31.0
+
+# Image scraper (optional — only needed for --workers)
+# Requires Chrome + ChromeDriver in webdriver/
+# See: https://github.com/dreamshao/chromedriver
+selenium>=4.10.0
