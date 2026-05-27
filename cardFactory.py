@@ -526,8 +526,12 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
         img_css = f"background-image: url('{b64}'); background-size: cover; background-position: center;"
 
     # Etiqueta de precio
+    # Tipos que no se pueden comprar — no muestran precio ni hipoteca
+    NO_COMPRABLE = {10, 14, 15}
+    is_comprable = propiedad.tipo not in NO_COMPRABLE
+
     precio_str = ""
-    if propiedad.precio and str(propiedad.precio) not in ("0", "0.0", "nan", ""):
+    if is_comprable and propiedad.precio and str(propiedad.precio) not in ("0", "0.0", "nan", ""):
         p = float(propiedad.precio)
         if p >= 1_000_000:
             precio_str = f"{p/1_000_000:g}M"
@@ -777,9 +781,20 @@ _TIPO_DETALLE = {
 
     # ── 15: DÍA DE PAGA ──────────────────────────────────────────────────────
     15: lambda p: [
-        ("Efecto",            "Recibes 50K por cada fortuna roja que tengas"),
-        ("Ubicación",         "Esquinas del carril rojo"),
-        ("Nota",              "Solo cuentan las fortunas rojas en tu poder"),
+        ("Efecto",            "Recibes 200K por cada propiedad que tengas"),
+        ("No comprable",      "Esta casilla no se puede adquirir"),
+        ("Nota",              "Solo cuentan propiedades tipo 1 en tu poder"),
+    ],
+
+    # ── 16: EMPRESA + SALIDA (Caseta de Zapotlanejo) ─────────────────────────
+    16: lambda p: [
+        ("Tipo",              "Empresa especial · también es la casilla de Salida"),
+        ("Al pasar",          "Recibes el 20% del salario base acordado"),
+        ("Si tiene dueño",    "El salario al pasar va al dueño · lo cobra cuando pase él mismo"),
+        ("Precio de compra",  f"${int(float(p.precio)):,}"),
+        ("Cobro al caer",     f"Dados × (10 × (2 + N° de empresas que posees))"),
+        ("Oficinas",          f"Hasta 4 · duplican el cobro por dados"),
+        ("Torres",            f"Hasta 2 · el cobro se duplica dos veces adicionales"),
     ],
 }
 
@@ -1017,7 +1032,7 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
 
     <div class="card__footer">
         <span>Carril {propiedad.carril}</span>
-        {"<span>Hipoteca: $" + str(int(float(propiedad.precio)//2)) + "</span>" if propiedad.precio and str(propiedad.precio) not in ("0","0.0","nan","") else ""}
+        {"<span>Hipoteca: $" + str(int(float(propiedad.precio)//2)) + "</span>" if is_comprable and propiedad.precio and str(propiedad.precio) not in ("0","0.0","nan","") else ""}
     </div>
 
 </div>

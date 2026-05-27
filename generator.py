@@ -199,7 +199,7 @@ def main():
     def build_sorted_lane(df, carril, slots):
         sub       = df[df['carril'] == carril]
         props     = sub[sub['tipo'] == 1].sort_values('precio').reset_index(drop=True)
-        non_props = sub[(sub['tipo'] != 1) & (sub['tipo'] != 2)].reset_index(drop=True)
+        non_props = sub[(sub['tipo'] != 1) & (sub['tipo'] != 2) & (sub['tipo'] != 16)].reset_index(drop=True)
         return pd.concat([props, non_props], ignore_index=True)['nombre'].tolist()[:slots]
 
     from boardFactory import sideLengthFromPerimeter, BLUE_CANONICAL

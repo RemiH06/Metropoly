@@ -24,7 +24,7 @@ Tipos que NUNCA reciben color de grupo (usan color fijo por tipo):
   tipo 10 (fortunas)   → lavender
   tipo 14 (casa cambio)→ gold
   tipo 15 (día de paga)→ lightGreen
-  tipo 13 (salida)     → green
+  tipo 16 (empresa+salida) → chineseRed
   tipo 5  (lotería)    → yellow
   tipo 6  (minas)      → chineseRed
   tipo 11 (cárcel)     → chineseRed
@@ -54,6 +54,7 @@ TIPO_COLOR = {
     13: 'green',
     14: 'gold',
     15: 'lightGreen',
+    16: 'chineseRed',   # empresa + salida
 }
 
 # ── Arreglo de 8 colores de grupo ─────────────────────────────────────────

@@ -30,7 +30,7 @@ Helipuerto Puerta de Hierro,teal,1,tile.png,150000,0,4
 Fortuna de Chapultepec,lavender,1,tile.png,0,0,10
 Fortuna de Andares,lavender,1,tile.png,0,0,10
 Fortuna del Centro Histórico,lavender,1,tile.png,0,0,10
-Caseta de Zapotlanejo,chineseRed,1,tile.png,2000000,0,2
+Caseta de Zapotlanejo,chineseRed,1,tile.png,2000000,0,16
 IMSS Jalisco,chineseRed,1,tile.png,2000000,0,2
 SIAPA,chineseRed,1,tile.png,2000000,0,2
 Telcel Jalisco,chineseRed,1,tile.png,2000000,0,2
@@ -87,10 +87,10 @@ Casa de Cambio Chapultepec,gold,3,,0,0,14
 Casa de Cambio Providencia,gold,3,,0,0,14
 Casa de Cambio Tlaquepaque,gold,3,,0,0,14
 Casa de Cambio Centro,gold,3,,0,0,14
-Día de Paga Norte,lightGreen,3,,50000,0,15
-Día de Paga Sur,lightGreen,3,,50000,0,15
-Día de Paga Oriente,lightGreen,3,,50000,0,15
-Día de Paga Poniente,lightGreen,3,,50000,0,15
+Día de Paga Norte,lightGreen,3,,0,0,15
+Día de Paga Sur,lightGreen,3,,0,0,15
+Día de Paga Oriente,lightGreen,3,,0,0,15
+Día de Paga Poniente,lightGreen,3,,0,0,15
 La Seca,lavender,3,,0,0,10
 El Temblor,lavender,3,,0,0,10
 El Bache,lavender,3,,0,0,10
