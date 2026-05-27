@@ -34,7 +34,7 @@ def cargar_propiedades_generico(path: str):
     """
     Carga propiedades desde JSON, CSV o Excel.
     Siempre devuelve una lista de objetos con atributos:
-        .nombre  .color  .carril  .imagen  .precio  .renta_base  .tipo  .posicion
+        .nombre  .color  .carril  .imagen  .precio  .renta_base  .tipo
     """
     ext = os.path.splitext(path)[1].lower()
 
@@ -49,14 +49,13 @@ def cargar_propiedades_generico(path: str):
         raise ValueError(f"Extensión no soportada: {ext}")
 
     columnas_esperadas = ["nombre", "color", "carril", "imagen",
-                          "precio", "renta_base", "tipo", "posicion"]
+                          "precio", "renta_base", "tipo"]
     for col in columnas_esperadas:
         if col not in df.columns:
             raise ValueError(f"Falta la columna requerida: '{col}'")
 
     df["carril"]   = df["carril"].astype(int)
     df["tipo"]     = df["tipo"].astype(int)
-    df["posicion"] = df["posicion"].astype(int)
 
     # Rellenar NaN en precio / renta_base con 0
     df["precio"]     = df["precio"].fillna(0)
@@ -189,53 +188,34 @@ def main():
     cfg    = _load_config()
     colors = _get_colors()
 
-    # ── Cargar CSV crudo para el resolver de colores ─────────────────────────
+    # ── Cargar CSV ───────────────────────────────────────────────────────────
     import pandas as pd
-    from colorResolver import build_color_index, TIPO_COLOR, GROUP_COLORS
 
     raw_df = pd.read_csv(args.input)
     raw_df['precio']     = pd.to_numeric(raw_df['precio'],     errors='coerce').fillna(0)
     raw_df['renta_base'] = pd.to_numeric(raw_df['renta_base'], errors='coerce').fillna(0)
 
     # ── Construir listas de carriles ordenadas por precio ────────────────────
-    # Carril azul: propiedades tipo 1 ordenadas por precio, luego el resto
-    def build_sorted_lane(df, carril, slots, corners_list):
-        """
-        Devuelve (lane_names, corner_names) para el carril dado.
-        Las propiedades tipo 1 se ordenan por precio.
-        El resto (trenes, aeropuertos, fortunas, etc.) mantienen su orden.
-        Se toman solo `slots` casillas no-esquina.
-        """
-        sub = df[df['carril'] == carril]
-        props    = sub[sub['tipo'] == 1].sort_values('precio').reset_index(drop=True)
-        non_props = sub[sub['tipo'] != 1][sub['tipo'] != 2].reset_index(drop=True)
-        ordered = pd.concat([props, non_props], ignore_index=True)
-        lane = ordered['nombre'].tolist()[:slots]
-        return lane
+    def build_sorted_lane(df, carril, slots):
+        sub       = df[df['carril'] == carril]
+        props     = sub[sub['tipo'] == 1].sort_values('precio').reset_index(drop=True)
+        non_props = sub[(sub['tipo'] != 1) & (sub['tipo'] != 2)].reset_index(drop=True)
+        return pd.concat([props, non_props], ignore_index=True)['nombre'].tolist()[:slots]
 
-    # Slots disponibles por carril (sin esquinas)
     from boardFactory import sideLengthFromPerimeter, BLUE_CANONICAL
-    boardSize  = sideLengthFromPerimeter(BLUE_CANONICAL)
-    blue_slots   = (boardSize - 1 - 1) * 4      # lados sin esquinas
+    boardSize    = sideLengthFromPerimeter(BLUE_CANONICAL)
+    blue_slots   = (boardSize - 1 - 1) * 4
     yellow_slots = (boardSize - 2 - 1 - 1) * 4
     red_slots    = (boardSize - 4 - 1 - 1) * 4
 
-    sorted_blue   = build_sorted_lane(raw_df, 1, blue_slots,   blueCorners)
-    sorted_yellow = build_sorted_lane(raw_df, 2, yellow_slots, yellowCorners)
-    sorted_red    = build_sorted_lane(raw_df, 3, red_slots,    redCorners)
+    sorted_blue   = build_sorted_lane(raw_df, 1, blue_slots)
+    sorted_yellow = build_sorted_lane(raw_df, 2, yellow_slots)
+    sorted_red    = build_sorted_lane(raw_df, 3, red_slots)
 
-    print(f"[generator] Lanes ordenadas por precio: azul={len(sorted_blue)}, amarillo={len(sorted_yellow)}, rojo={len(sorted_red)}")
+    print(f"[generator] Lanes: azul={len(sorted_blue)}, amarillo={len(sorted_yellow)}, rojo={len(sorted_red)}")
 
-    # ── Resolver colores 'auto' ───────────────────────────────────────────────
-    color_index = build_color_index(sorted_blue, raw_df)
-    print(f"[generator] Colores resueltos: {len(color_index)} casillas")
-
-    # Inyectar colores resueltos en las propiedades antes de generar
+    # Cargar propiedades — colores ya están explícitos en el CSV
     propiedades = cargar_propiedades_generico(args.input)
-    for prop in propiedades:
-        if str(prop.color).strip().lower() == 'auto':
-            prop.color = color_index.get(prop.nombre, 'blue')
-
     total = len(propiedades)
 
     # ── Contadores de progreso thread-safe ───────────────────────────────────

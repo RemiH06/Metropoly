@@ -336,7 +336,7 @@ def _img_to_b64(path: str) -> str:
 # =============================================================================
 
 class Propiedad:
-    def __init__(self, nombre, color, carril, imagen, precio, renta_base, tipo, posicion):
+    def __init__(self, nombre, color, carril, imagen, precio, renta_base, tipo):
         self.nombre     = nombre
         self.color      = color
         self.carril     = int(carril)
@@ -344,7 +344,6 @@ class Propiedad:
         self.precio     = precio
         self.renta_base = renta_base
         self.tipo       = int(tipo)
-        self.posicion   = int(posicion)
 
 
 def cargar_propiedades(path: str) -> list[Propiedad]:
@@ -553,10 +552,12 @@ def generar_casilla(propiedad, force: bool = False, cfg: dict = None, colors: di
         if not force and os.path.exists(out_path):
             with open(out_path, "r", encoding="utf-8") as f:
                 existing = f.read()
-            # Regenerar si: falta imagen, o falta @font-face cuando debería estar
             needs_image = img_path and "background-image" not in existing
             needs_font  = has_font and "@font-face" not in existing
-            if not needs_image and not needs_font:
+            # Invalidar si el color de franja cambió — busca el background-color de .tile__band
+            resolved_color = colors.get(propiedad.color, "")
+            needs_color = resolved_color and f"background-color: {resolved_color}" not in existing
+            if not needs_image and not needs_font and not needs_color:
                 continue
 
         # La casilla siempre se dibuja "derecha" (0°); la rotación la aplica boardFactory
@@ -664,6 +665,8 @@ _TIPO_DETALLE = {
         ("Con 3 casas",      f"${int(float(p.renta_base) * 8):,}"),
         ("Con 4 casas",      f"${int(float(p.renta_base) * 16):,}"),
         ("Con hotel",        f"${int(float(p.renta_base) * 32):,}"),
+        ("Costo casa",       f"${int(float(p.precio)):,}"),
+        ("Costo hotel",      f"${int(float(p.precio) * 4):,}  (4 casas)"),
         ("Precio hipoteca",  f"${int(float(p.precio) // 2):,}"),
     ],
 
@@ -824,7 +827,9 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
             existing = f.read()
         needs_image = img_path and "background-image" not in existing
         needs_font  = _font_exists() and "@font-face" not in existing
-        if not needs_image and not needs_font:
+        resolved_color = colors.get(propiedad.color, "")
+        needs_color = resolved_color and f"background-color: {resolved_color}" not in existing
+        if not needs_image and not needs_font and not needs_color:
             return
     
     card_cfg  = cfg["card"]
@@ -1012,7 +1017,6 @@ def generar_tarjeta(propiedad, force: bool = False, cfg: dict = None, colors: di
 
     <div class="card__footer">
         <span>Carril {propiedad.carril}</span>
-        <span>Pos. {propiedad.posicion}</span>
         {"<span>Hipoteca: $" + str(int(float(propiedad.precio)//2)) + "</span>" if propiedad.precio and str(propiedad.precio) not in ("0","0.0","nan","") else ""}
     </div>
 

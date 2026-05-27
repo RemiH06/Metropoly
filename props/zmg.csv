@@ -1,107 +1,107 @@
-﻿nombre,color,carril,imagen,precio,renta_base,tipo,posicion
-Chapalita,auto,1,jj.png,300000,26000,1,1
-Providencia,auto,1,tile.png,300000,26000,1,1
-Americana,auto,1,tile.png,260000,22000,1,1
-Santa Tere,auto,1,tile.png,260000,22000,1,1
-Arcos Vallarta,auto,1,tile.png,260000,22000,1,1
-Country Club,auto,1,tile.png,220000,18000,1,1
-Jardines del Bosque,auto,1,tile.png,220000,18000,1,1
-Puerta de Hierro,auto,1,tile.png,220000,18000,1,1
-Andares,auto,1,tile.png,180000,14000,1,1
-Colonia Seattle,auto,1,tile.png,180000,14000,1,1
-Lomas de Atemajac,auto,1,tile.png,180000,14000,1,1
-Ciudad del Sol,auto,1,tile.png,140000,10000,1,1
-La Estancia,auto,1,tile.png,140000,10000,1,1
-Altamira,auto,1,tile.png,140000,10000,1,1
-Real Vallarta,auto,1,tile.png,100000,6000,1,1
-La Calma,auto,1,tile.png,100000,6000,1,1
-Monraz,auto,1,tile.png,100000,6000,1,1
-Ladrón de Guevara,auto,1,tile.png,60000,2000,1,1
-Colinas de San Javier,auto,1,tile.png,400000,50000,1,1
-Colonia Moderna,auto,1,tile.png,60000,2000,1,1
-Estación Centro (Línea 1),auto,1,tile.png,200000,0,3,1
-Estación Zapopan Centro,auto,1,tile.png,200000,0,3,1
-Estación Tetlán,auto,1,tile.png,200000,0,3,1
-Estación Tlaquepaque,auto,1,tile.png,200000,0,3,1
-Aeropuerto Internacional de Guadalajara (GDL),auto,1,tile.png,150000,0,4,1
-Aeropuerto de Zapopan,auto,1,tile.png,150000,0,4,1
-Aeropuerto de Toluquilla,auto,1,tile.png,150000,0,4,1
-Helipuerto Puerta de Hierro,auto,1,tile.png,150000,0,4,1
-Fortuna de Chapultepec,auto,1,tile.png,0,0,10,1
-Fortuna de Andares,auto,1,tile.png,0,0,10,1
-Fortuna del Centro Histórico,auto,1,tile.png,0,0,10,1
-Caseta de Zapotlanejo,auto,1,tile.png,2000000,0,2,1
-IMSS Jalisco,auto,1,tile.png,2000000,0,2,1
-SIAPA,auto,1,tile.png,2000000,0,2,1
-Telcel Jalisco,auto,1,tile.png,2000000,0,2,1
-Plaza del Sol,auto,2,tile.png,200000,6,8,1
-Galerías Guadalajara,auto,2,tile.png,180000,6,8,1
-Midtown Jalisco,auto,2,tile.png,140000,5,8,1
-Mercado San Juan de Dios,auto,2,tile.png,70000,3,8,1
-Plaza Patria,auto,2,tile.png,120000,5,8,1
-Landmark,auto,2,tile.png,150000,5,8,1
-Plaza Andares,auto,2,tile.png,160000,6,8,1
-Templo Expiatorio,auto,2,tile.png,130000,5,8,1
-Mercado de Atemajac,auto,2,tile.png,60000,3,8,1
-Plaza Fórum Tlaquepaque,auto,2,tile.png,120000,5,8,1
-Mercado de Abastos,auto,2,tile.png,50000,3,8,1
-Plaza Bugambilias,auto,2,tile.png,110000,4,8,1
-Plaza Ciudadela,auto,2,tile.png,110000,4,8,1
-Mercado Libertad,auto,2,tile.png,60000,3,8,1
-Tonalá,auto,2,tile.png,80000,4,8,1
-Tlaquepaque,auto,2,tile.png,90000,4,8,1
-Twin Lions,auto,2,tile.png,100000,0,7,1
-Casino Majestic,auto,2,tile.png,100000,0,7,1
-PlayCity,auto,2,tile.png,100000,0,7,1
-Caliente,auto,2,tile.png,100000,0,7,1
-Av. López Mateos,auto,2,tile.png,80000,0,9,1
-Av. Vallarta,auto,2,tile.png,80000,0,9,1
-Av. Patria,auto,2,tile.png,90000,0,9,1
-Av. Hidalgo,auto,2,tile.png,90000,0,9,1
-Av. Juárez,auto,2,tile.png,90000,0,9,1
-Periférico Norte,auto,2,tile.png,100000,0,9,1
-Lázaro Cárdenas,auto,2,tile.png,100000,0,9,1
-Niños Héroes,auto,2,tile.png,110000,0,9,1
-Megacable Guadalajara,auto,2,tile.png,2000000,0,2,1
-UdeG,auto,2,tile.png,2000000,0,2,1
-Palacio Municipal de Guadalajara,auto,2,tile.png,2000000,0,2,1
-CFE Jalisco,auto,2,tile.png,2000000,0,2,1
-Colapso del Periférico,auto,3,tile.png,0,0,10,1
-Tráfico de López Mateos,auto,3,tile.png,0,0,10,1
-Lluvia en la Glorieta,auto,3,tile.png,0,0,10,1
-Marcha del Centro,auto,3,tile.png,0,0,10,1
-Desvío del Tren Ligero,auto,3,tile.png,0,0,10,1
-El Parquímetro,auto,3,tile.png,0,0,10,1
-El Multón,auto,3,tile.png,0,0,10,1
-Asalto,auto,3,tile.png,0,0,10,1
-El Gasolinazo,auto,3,tile.png,0,0,10,1
-Manifestación,auto,3,tile.png,0,0,10,1
-Inspección Municipal,auto,3,tile.png,0,0,10,1
-Apagón,auto,3,tile.png,0,0,10,1
-Puente Grande,auto,3,tile.png,2000000,0,2,1
-Gas Natural del Occidente,auto,3,tile.png,2000000,0,2,1
-Caabsa Eagle,auto,3,tile.png,2000000,0,2,1
-Pemex López Mateos,auto,3,tile.png,2000000,0,2,1
-El Colli,auto,1,,400000,50000,1,1
-Casa de Cambio Chapultepec,auto,3,,0,0,14,1
-Casa de Cambio Providencia,auto,3,,0,0,14,1
-Casa de Cambio Tlaquepaque,auto,3,,0,0,14,1
-Casa de Cambio Centro,auto,3,,0,0,14,1
-Día de Paga Norte,auto,3,,50000,0,15,1
-Día de Paga Sur,auto,3,,50000,0,15,1
-Día de Paga Oriente,auto,3,,50000,0,15,1
-Día de Paga Poniente,auto,3,,50000,0,15,1
-La Seca,auto,3,,0,0,10,1
-El Temblor,auto,3,,0,0,10,1
-El Bache,auto,3,,0,0,10,1
-La Lluvia Ácida,auto,3,,0,0,10,1
-Colonia Chapalita,auto,1,,80000,4000,1,1
-Colonia del Fresno,auto,1,,90000,5000,1,1
-Colonia Americana,auto,1,,110000,7000,1,1
-Jardines del Country,auto,1,,120000,8000,1,1
-Lomas del Valle,auto,1,,150000,11000,1,1
-Colomos Providencia,auto,1,,160000,12000,1,1
-Colinas de San Javier Sur,auto,1,,190000,15000,1,1
-Bosques de San Isidro,auto,1,,200000,17000,1,1
-Pinar de la Calma,auto,1,,240000,20000,1,1
-Santa Anita,auto,1,,280000,24000,1,1
+﻿nombre,color,carril,imagen,precio,renta_base,tipo
+Chapalita,teal,1,jj.png,300000,26000,1
+Providencia,deepBlue,1,tile.png,300000,26000,1
+Americana,green,1,tile.png,260000,22000,1
+Santa Tere,green,1,tile.png,260000,22000,1
+Arcos Vallarta,deepBlue,1,tile.png,260000,22000,1
+Country Club,yellow,1,tile.png,220000,18000,1
+Jardines del Bosque,yellow,1,tile.png,220000,18000,1
+Puerta de Hierro,yellow,1,tile.png,220000,18000,1
+Andares,red,1,tile.png,180000,14000,1
+Colonia Seattle,red,1,tile.png,180000,14000,1
+Lomas de Atemajac,orange,1,tile.png,180000,14000,1
+Ciudad del Sol,orange,1,tile.png,140000,10000,1
+La Estancia,pink,1,tile.png,140000,10000,1
+Altamira,pink,1,tile.png,140000,10000,1
+Real Vallarta,lightBlue,1,tile.png,100000,6000,1
+La Calma,lightBlue,1,tile.png,100000,6000,1
+Monraz,lightBlue,1,tile.png,100000,6000,1
+Ladrón de Guevara,brown,1,tile.png,60000,2000,1
+Colinas de San Javier,teal,1,tile.png,400000,50000,1
+Colonia Moderna,brown,1,tile.png,60000,2000,1
+Estación Centro (Línea 1),brown,1,tile.png,200000,0,3
+Estación Zapopan Centro,brown,1,tile.png,200000,0,3
+Estación Tetlán,brown,1,tile.png,200000,0,3
+Estación Tlaquepaque,brown,1,tile.png,200000,0,3
+Aeropuerto Internacional de Guadalajara (GDL),teal,1,tile.png,150000,0,4
+Aeropuerto de Zapopan,teal,1,tile.png,150000,0,4
+Aeropuerto de Toluquilla,teal,1,tile.png,150000,0,4
+Helipuerto Puerta de Hierro,teal,1,tile.png,150000,0,4
+Fortuna de Chapultepec,lavender,1,tile.png,0,0,10
+Fortuna de Andares,lavender,1,tile.png,0,0,10
+Fortuna del Centro Histórico,lavender,1,tile.png,0,0,10
+Caseta de Zapotlanejo,chineseRed,1,tile.png,2000000,0,2
+IMSS Jalisco,chineseRed,1,tile.png,2000000,0,2
+SIAPA,chineseRed,1,tile.png,2000000,0,2
+Telcel Jalisco,chineseRed,1,tile.png,2000000,0,2
+Plaza del Sol,gold,2,tile.png,200000,6,8
+Galerías Guadalajara,gold,2,tile.png,180000,6,8
+Midtown Jalisco,gold,2,tile.png,140000,5,8
+Mercado San Juan de Dios,gold,2,tile.png,70000,3,8
+Plaza Patria,gold,2,tile.png,120000,5,8
+Landmark,gold,2,tile.png,150000,5,8
+Plaza Andares,gold,2,tile.png,160000,6,8
+Templo Expiatorio,gold,2,tile.png,130000,5,8
+Mercado de Atemajac,gold,2,tile.png,60000,3,8
+Plaza Fórum Tlaquepaque,gold,2,tile.png,120000,5,8
+Mercado de Abastos,gold,2,tile.png,50000,3,8
+Plaza Bugambilias,gold,2,tile.png,110000,4,8
+Plaza Ciudadela,gold,2,tile.png,110000,4,8
+Mercado Libertad,gold,2,tile.png,60000,3,8
+Tonalá,gold,2,tile.png,80000,4,8
+Tlaquepaque,gold,2,tile.png,90000,4,8
+Twin Lions,purple,2,tile.png,100000,0,7
+Casino Majestic,purple,2,tile.png,100000,0,7
+PlayCity,purple,2,tile.png,100000,0,7
+Caliente,purple,2,tile.png,100000,0,7
+Av. López Mateos,teal,2,tile.png,80000,0,9
+Av. Vallarta,teal,2,tile.png,80000,0,9
+Av. Patria,teal,2,tile.png,90000,0,9
+Av. Hidalgo,teal,2,tile.png,90000,0,9
+Av. Juárez,teal,2,tile.png,90000,0,9
+Periférico Norte,teal,2,tile.png,100000,0,9
+Lázaro Cárdenas,teal,2,tile.png,100000,0,9
+Niños Héroes,teal,2,tile.png,110000,0,9
+Megacable Guadalajara,chineseRed,2,tile.png,2000000,0,2
+UdeG,chineseRed,2,tile.png,2000000,0,2
+Palacio Municipal de Guadalajara,chineseRed,2,tile.png,2000000,0,2
+CFE Jalisco,chineseRed,2,tile.png,2000000,0,2
+Colapso del Periférico,lavender,3,tile.png,0,0,10
+Tráfico de López Mateos,lavender,3,tile.png,0,0,10
+Lluvia en la Glorieta,lavender,3,tile.png,0,0,10
+Marcha del Centro,lavender,3,tile.png,0,0,10
+Desvío del Tren Ligero,lavender,3,tile.png,0,0,10
+El Parquímetro,lavender,3,tile.png,0,0,10
+El Multón,lavender,3,tile.png,0,0,10
+Asalto,lavender,3,tile.png,0,0,10
+El Gasolinazo,lavender,3,tile.png,0,0,10
+Manifestación,lavender,3,tile.png,0,0,10
+Inspección Municipal,lavender,3,tile.png,0,0,10
+Apagón,lavender,3,tile.png,0,0,10
+Puente Grande,chineseRed,3,tile.png,2000000,0,2
+Gas Natural del Occidente,chineseRed,3,tile.png,2000000,0,2
+Caabsa Eagle,chineseRed,3,tile.png,2000000,0,2
+Pemex López Mateos,chineseRed,3,tile.png,2000000,0,2
+El Colli,teal,1,,400000,50000,1
+Casa de Cambio Chapultepec,gold,3,,0,0,14
+Casa de Cambio Providencia,gold,3,,0,0,14
+Casa de Cambio Tlaquepaque,gold,3,,0,0,14
+Casa de Cambio Centro,gold,3,,0,0,14
+Día de Paga Norte,lightGreen,3,,50000,0,15
+Día de Paga Sur,lightGreen,3,,50000,0,15
+Día de Paga Oriente,lightGreen,3,,50000,0,15
+Día de Paga Poniente,lightGreen,3,,50000,0,15
+La Seca,lavender,3,,0,0,10
+El Temblor,lavender,3,,0,0,10
+El Bache,lavender,3,,0,0,10
+La Lluvia Ácida,lavender,3,,0,0,10
+Colonia Chapalita,brown,1,,80000,4000,1
+Colonia del Fresno,lightBlue,1,,90000,5000,1
+Colonia Americana,pink,1,,110000,7000,1
+Jardines del Country,pink,1,,120000,8000,1
+Lomas del Valle,orange,1,,150000,11000,1
+Colomos Providencia,orange,1,,160000,12000,1
+Colinas de San Javier Sur,red,1,,190000,15000,1
+Bosques de San Isidro,red,1,,200000,17000,1
+Pinar de la Calma,green,1,,240000,20000,1
+Santa Anita,deepBlue,1,,280000,24000,1

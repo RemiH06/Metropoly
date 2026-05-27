@@ -66,7 +66,90 @@ GROUP_COLORS = [
     'yellow',
     'green',
     'deepBlue',
+    'teal',
+    'lavender',
+    'purple',
+    'lightGreen',
+    'white',
 ]
+
+
+def _group_sizes(n: int) -> list[int]:
+    """
+    Distribuye n propiedades en grupos de 4,
+    con el primero y último de 3 si hay suficientes grupos.
+    Nunca recicla colores — lanza error si n > len(GROUP_COLORS)*4+2.
+
+    Ejemplos:
+      n=10 → [3, 4, 3]
+      n=31 → [3, 4, 4, 4, 4, 4, 4, 4, 4, 3]  (wait, eso es 38)
+      n=31 → [3, 4, 4, 4, 4, 4, 4, 4, 4]  ... calculemos bien
+
+    Lógica:
+      - Si n <= 3: un solo grupo de n
+      - Primer y último grupo = 3, resto = 4
+      - n = 3 + 4*(k-2) + 3 → k = (n-6)/4 + 2 grupos si n>=6
+      - Si no es divisible exactamente, ajustar último grupo
+    """
+    if n == 0:
+        return []
+    if n <= 3:
+        return [n]
+    if n <= 7:
+        # dos grupos: primero 3, último el resto
+        return [3, n - 3]
+
+    # Grupos intermedios de 4
+    # primer=3, último=3, medio=(n-6) propiedades en grupos de 4
+    middle = n - 6
+    full, rem = divmod(middle, 4)
+
+def _group_sizes(n: int) -> list[int]:
+    """
+    Distribuye n propiedades en grupos de exactamente 3 o 4:
+      - Primer grupo: 3
+      - Último grupo: 3
+      - Grupos intermedios: 4 (alguno puede ser 3 si hay residuo)
+    Nunca excede 4 por grupo, nunca recicla colores.
+    """
+    if n == 0:
+        return []
+    if n <= 3:
+        return [n]
+    if n <= 7:
+        # Dos grupos: primero 3, último lo que quede
+        last = n - 3
+        return [3, last] if last <= 4 else [3, 4]
+
+    # Calcular cuántos grupos necesitamos
+    # Todos los grupos son 3 o 4; mínimo n//4, máximo n//3
+    # Queremos que primero y último sean exactamente 3
+    # Resolvemos: 3 + 4*(k-2) + 3 <= n <= 3 + 4*(k-2) + ... → k grupos
+    # Simplificado: k = ceil((n-6)/4) + 2
+    import math
+    k = math.ceil((n - 6) / 4) + 2
+
+    max_n = 3 + 4 * (len(GROUP_COLORS) - 2) + 3
+    assert n <= max_n, \
+        f"Demasiadas propiedades ({n}), máximo soportado: {max_n}"
+    assert k <= len(GROUP_COLORS), \
+        f"Demasiados grupos ({k}) para {len(GROUP_COLORS)} colores"
+
+    # Distribuir n en k grupos con primero=último=3, resto 3 o 4
+    middle_total = n - 6          # propiedades para los k-2 grupos del medio
+    middle_k     = k - 2          # grupos del medio
+    base, extra  = divmod(middle_total, middle_k)
+    # base es 3 o 4; si base > 4 necesitamos más grupos (raro)
+    middle_sizes = [base + (1 if i < extra else 0) for i in range(middle_k)]
+
+    sizes = [3] + middle_sizes + [3]
+    assert sum(sizes) == n, f"sum={sum(sizes)} != n={n}, sizes={sizes}"
+    assert max(sizes) <= 4,  f"Grupo demasiado grande: {sizes}"
+    assert len(sizes) <= len(GROUP_COLORS), \
+        f"Demasiados grupos ({len(sizes)}) para {len(GROUP_COLORS)} colores"
+    return sizes
+
+
 
 # ── Tamaño del bloque de esquina ──────────────────────────────────────────
 CORNER_N = 3
@@ -108,9 +191,7 @@ def build_color_index(
     ].sort_values('precio').reset_index(drop=True)
 
     n_props = len(props_azul)
-    # Distribuir en 8 grupos lo más uniformemente posible
-    base, extra = divmod(n_props, 8)
-    group_sizes = [base + (1 if i < extra else 0) for i in range(8)]
+    group_sizes = _group_sizes(n_props)
 
     prop_color_map: dict[str, str] = {}
     idx = 0
@@ -147,103 +228,17 @@ def build_color_index(
                 tipo = int(rows.iloc[0]['tipo'])
                 blue_name_color[name] = TIPO_COLOR.get(tipo, 'lavender')
 
-    # ── 3. Mapear posición absoluta → color azul ─────────────────────────────
-    coords_blue = list(iterRingCoordinates(boardSize))
-    RL = boardSize - 1
-
-    lane_iter   = iter(blue_lane_names)
-    corner_names = blue_df[
-        (blue_df['carril'] == 1) & (blue_df['tipo'] == 2)
-    ]['nombre'].tolist()
-    corner_iter = iter(corner_names)
-
-    abs_pos_to_blue_color: dict[tuple, str] = {}
-
-    for r, c in coords_blue:
-        is_diag = (r in (0, RL) and c in (0, RL))
-        if is_diag:
-            name = next(corner_iter, None)
-        else:
-            name = next(lane_iter, None)
-
-        if not name:
-            continue
-
-        color = blue_name_color.get(name) or TIPO_COLOR.get(
-            int(blue_df.loc[blue_df['nombre'] == name, 'tipo'].iloc[0])
-            if name in blue_df['nombre'].values else 1,
-            'blue'
-        )
-        abs_pos_to_blue_color[(r, c)] = color
-
-    # ── 4. Para cada casilla amarilla/roja: heredar color del azul paralelo ──
+    # ── 3. Azul: añadir al resultado ─────────────────────────────────────────
     result: dict[str, str] = {}
 
-    def get_parallel_color(abs_r: int, abs_c: int) -> str | None:
-        """Color de la casilla azul perpendicular a esta posición."""
-        if _in_corner_zone(abs_r, abs_c, L):
-            return None  # zona de esquina → sin color de grupo
-        if abs_r <= CORNER_N - 1:
-            blue_coord = (0, abs_c)
-        elif abs_r >= L - CORNER_N + 1:
-            blue_coord = (L, abs_c)
-        elif abs_c <= CORNER_N - 1:
-            blue_coord = (abs_r, 0)
-        elif abs_c >= L - CORNER_N + 1:
-            blue_coord = (abs_r, L)
-        else:
-            return None
-        return abs_pos_to_blue_color.get(blue_coord)
+    # ── 4. Amarillo y rojo: color fijo por tipo, sin heredar del azul ───────
+    result: dict[str, str] = {}
 
-    # Amarillo (offset 1)
-    yellow_df = blue_df[blue_df['carril'] == 2]
-    yellow_non_corner = yellow_df[yellow_df['tipo'] != 2].reset_index(drop=True)
-    yellow_corners_df = yellow_df[yellow_df['tipo'] == 2]
-    coords_yellow = list(iterRingCoordinates(boardSize - 2))
-    RL_y = boardSize - 3
-    y_lane_iter   = iter(yellow_non_corner['nombre'].tolist())
-    y_corner_iter = iter(yellow_corners_df['nombre'].tolist())
-
-    for r, c in coords_yellow:
-        is_diag = (r in (0, RL_y) and c in (0, RL_y))
-        name = next(y_corner_iter, None) if is_diag else next(y_lane_iter, None)
-        if not name:
-            continue
-        abs_r, abs_c = r + 1, c + 1
-        rows = yellow_df.loc[yellow_df['nombre'] == name]
-        if rows.empty:
-            continue
-        tipo = int(rows['tipo'].iloc[0])
-        if tipo in ALWAYS_FIXED:
-            result[name] = TIPO_COLOR[tipo]
-        else:
-            inherited = get_parallel_color(abs_r, abs_c)
-            result[name] = inherited if inherited else TIPO_COLOR.get(tipo, 'gold')
-
-    # Rojo (offset 2)
-    red_df = blue_df[blue_df['carril'] == 3]
-    red_non_corner = red_df[red_df['tipo'] != 2].reset_index(drop=True)
-    red_corners_df = red_df[red_df['tipo'] == 2]
-    coords_red = list(iterRingCoordinates(boardSize - 4))
-    RL_r = boardSize - 5
-    r_lane_iter   = iter(red_non_corner['nombre'].tolist())
-    r_corner_iter = iter(red_corners_df['nombre'].tolist())
-
-    for r, c in coords_red:
-        is_diag = (r in (0, RL_r) and c in (0, RL_r))
-        name = next(r_corner_iter, None) if is_diag else next(r_lane_iter, None)
-        if not name:
-            continue
-        abs_r, abs_c = r + 2, c + 2
-        rows = red_df.loc[red_df['nombre'] == name]
-        if rows.empty:
-            continue
-        tipo = int(rows['tipo'].iloc[0])
-        if tipo in ALWAYS_FIXED:
-            result[name] = TIPO_COLOR[tipo]
-        else:
-            inherited = get_parallel_color(abs_r, abs_c)
-            result[name] = inherited if inherited else TIPO_COLOR.get(tipo, 'lavender')
+    for carril_df, fallback in [(blue_df[blue_df['carril']==2], 'gold'),
+                                 (blue_df[blue_df['carril']==3], 'lavender')]:
+        for _, row in carril_df.iterrows():
+            tipo = int(row['tipo'])
+            result[row['nombre']] = TIPO_COLOR.get(tipo, fallback)
 
     # Azul también
     for name, color in blue_name_color.items():

@@ -17,18 +17,18 @@ Propiedades:
 Empresas: (2M cada una):
     - Caseta: recibe 1M más cada vez que pasa por la salida
     - Hospital: quien lo compra recibe todos los gastos médicos de los demás jugadores y no necesita pagarle a nadie por gastos médicos. Los gastos médicos se pueden dar por diversas razones. A diferencia de la cárcel, no se puede sacar a alguien de aquí así como así, pero se puede mitigar con efectos rojos. Los gastos médicos son siempre de 300k y se está ahí por 3 turnos.
-    - Compañía de agua: transfiere fortunas entre jugadores cada 5 turnos
-    - Compañía de telefonía: ver la fortuna de hasta arriba
-    - Compañía de internet: revolver las cartas
-    - Universidad: te da una tirada extra cada vez que al menos dos dados caigan igual. Se debe sacrificar un turno y pagar lo que marca la tarjeta.
+    - Compañía de agua: transfiere fortunas y puede ver las que tienen los jugadores
+    - Compañía de telefonía: ver la baraja de fortunas
+    - Compañía de internet: revolver las cartas de fortuna
+    - Universidad: te da una tirada extra cada vez que al menos dos dados caigan igual, no es necesario que los tres dados caigan igual.
     - Recaudadora: se queda el 10% de todas las transacciones que ocurran
-    - Compañía de luz: recupera del banco el 20% del total apostado por mano en el casino
-    - Cárcel: si alguien tiene fortuna de cárcel, tira 3 veces seguidas donde se repitan al menos 2 dados, o lo mandan a la cárcel por alguna otra condición, cae aquí y debe pagar 200k por cada turno que esté en la cárcel o pagar 500k para salir. Siempre que alguien cae en la cárcel es por 3 turnos. No importa de quién se trate, si se cae en la cárcel se pierden todos los efectos rojos positivos que se tengan hasta ese momento. Si alguien es dueño de la cárcel, recibe todos los gastos de cárcel que hagan los demás jugadores. Si el dueño va a la cárcel, la pierde y la tarjeta regresa al gobierno, para poder ser comprada por cualquier jugador.
-    - Compañía de gas: si se es dueño, a lo largo de la partida, puedes destruir e inhabilitar completamente dos casillas convirtiéndolas en lotes vacíos y sin efectos (las casillas de otros carriles aún afectan)
-    - Recolector de basura: si se es dueño de esta propiedad, se puede colocar un solo obstáculo que impida a todos los jugadores pasar por ahí (obligando a cambiar de carril) Los efectos negativos siguen afectando
+    - Compañía de luz: obtiene del banco el 40% del total apostado por juego en el casino (si el jugador ganador se llevó 1M, el dueño de la compañía de luz se lleva 400k invariablemente de si participó o no)
+    - Cárcel: si alguien tiene fortuna de cárcel, tira 3 veces seguidas donde se repitan al menos 2 dados, o lo mandan a la cárcel por alguna otra condición, cae aquí y debe pagar 200k por cada turno que esté en la cárcel o pagar 500k para salir. Siempre que alguien cae en la cárcel es por 3 turnos. No importa de quién se trate, si se cae en la cárcel se pierden todas las fortunas de nivel 3 o superior. Si alguien es dueño de la cárcel, recibe todos los gastos de cárcel que hagan los demás jugadores y además sus fortunas. Si el dueño va a la cárcel, la pierde y la tarjeta regresa al gobierno, para poder ser comprada por cualquier jugador. El precio de la cárcel se mantiene aunque tenga oficinas y torres.
+    - Compañía de gas: si se es dueño se pueden destruir e inhabilitar completamente dos casillas convirtiéndolas en lotes vacíos y sin efectos (las casillas de otros carriles aún afectan)
+    - Recolector de basura: si se es dueño de esta propiedad, se puede evitar que un jugador cambie de carril por turno.
     - Gasolinera: si nadie la tiene no ocurre nada extra al caer. Si alguien es propietario, recibe la mitad de todo el dinero que muevan los taxis.
 Todas las empresas cobran según lo que apunten los dados siguiendo esta fórmula
-Dados*(10*(2+NdeEmpresas))
+Dados*(10*(2+NdeEmpresas)) (se duplica una y otra vez de acuerdo a NdeOficinas).
     
 Lotería (en vez de parada libre): todo el dinero de impuestos se acumula en el centro, quien caiga aquí simplemente se lleva ese dinero.
 
