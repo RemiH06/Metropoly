@@ -59,7 +59,7 @@ repo/casillas/*_270.html
 repo/casillas/casilla_*.html
 !repo/casillas/casilla_Colonia_Moderna_0.html
 !repo/casillas/casilla_Plaza_del_Sol_0.html
-!repo/casillas/casilla_Colapso_del_Per__frico_0.html
+!repo/casillas/casilla_Colapso_del_Periférico_0.html
 
 # Tarjetas: excluir todas excepto 3 muestras
 repo/tarjetas/tarjeta_*.html

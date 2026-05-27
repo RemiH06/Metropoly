@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metropoly — Instructivo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+
+  /* ── Paleta ludus (carpa oscura) ── */
+  :root {
+    --bg:        #0C0608;
+    --bg2:       #140A0C;
+    --bg3:       #1E1014;
+    --text:      #F0DEC8;
+    --text2:     #907060;
+    --border:    #3A1C20;
+
+    --gold:      #C8901A;
+    --gold2:     #E8A820;
+    --crimson:   #901828;
+    --crimson2:  #B82030;
+    --amber:     #A86018;
+
+    --accent:    #C8901A;
+    --warn:      #E8A820;
+    --danger:    #901828;
+    --ok:        #C8901A;
+
+    --white:     #F8EED8;
+    --gray:      #604840;
+
+    --glow-gold:    0 0 10px rgba(200,144,26,.5);
+    --glow-crimson: 0 0 10px rgba(144,24,40,.6);
+  }
+
+  body.light {
+    --bg:        #FFF8F0;
+    --bg2:       #FFF0E4;
+    --bg3:       #FFE4CC;
+    --text:      #180808;
+    --text2:     #705040;
+    --border:    #E0C0A0;
+
+    --gold:      #A030D0;
+    --gold2:     #E07000;
+    --crimson:   #D03030;
+    --crimson2:  #D03030;
+    --amber:     #E07000;
+
+    --accent:    #A030D0;
+    --warn:      #E8C000;
+    --danger:    #D03030;
+    --ok:        #30B030;
+
+    --white:     #100808;
+    --gray:      #A08060;
+
+    --glow-gold:    none;
+    --glow-crimson: none;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── FONDO TETRIS ── */
+  #ludus-tetris {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    filter: blur(2px);
+  }
+
+  /* ── TOGGLE ── */
+  .theme-btn {
+    position: fixed; top: 18px; right: 22px; z-index: 10;
+    background: var(--bg2); border: 1px solid var(--border);
+    color: var(--text2); font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    transition: border-color .2s, color .2s;
+  }
+  .theme-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── PORTADA ── */
+  .cover {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 60px 40px;
+    position: relative; z-index: 2;
+  }
+  .cover::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 25% 35%, rgba(144,24,40,.25) 0%, transparent 55%),
+      radial-gradient(circle at 75% 65%, rgba(200,144,26,.2) 0%, transparent 55%);
+    pointer-events: none;
+  }
+  .cover-content { position: relative; z-index: 1; }
+  .cover-tagline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; letter-spacing: 0.35em;
+    color: var(--gold); text-transform: uppercase;
+    margin-bottom: 20px;
+    text-shadow: var(--glow-gold);
+  }
+  .cover-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 15vw, 160px);
+    line-height: 0.9;
+    color: var(--gold2);
+    text-shadow: var(--glow-gold);
+    letter-spacing: 0.02em;
+  }
+  .cover-subtitle {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; letter-spacing: 0.2em;
+    color: var(--text2);
+    text-transform: uppercase; margin-top: 16px;
+  }
+  .cover-rings {
+    display: flex; gap: 14px; margin: 36px 0;
+    justify-content: center; align-items: center;
+  }
+  .ring {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2.5px solid;
+  }
+  .ring.blue   { border-color: #1E88E5; background: rgba(30,136,229,.2); }
+  .ring.yellow { border-color: var(--gold2); background: rgba(232,168,32,.2); }
+  .ring.red    { border-color: var(--crimson); background: rgba(144,24,40,.2); }
+  .cover-desc {
+    max-width: 460px; color: var(--text2);
+    font-size: 14px; line-height: 1.7;
+  }
+  .cover-version {
+    position: absolute; bottom: 28px; right: 36px;
+    font-size: 11px; color: var(--border);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── LAYOUT ── */
+  .page {
+    max-width: 900px; margin: 0 auto;
+    padding: 60px 40px;
+    position: relative; z-index: 2;
+  }
+
+  /* ── SECCIÓN ── */
+  .section { margin-bottom: 72px; }
+  .section-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; letter-spacing: 0.4em;
+    color: var(--crimson); text-transform: uppercase;
+    margin-bottom: 8px;
+    text-shadow: var(--glow-crimson);
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px; letter-spacing: 0.02em;
+    color: var(--white); line-height: 1;
+    margin-bottom: 28px;
+  }
+  .section-title span { color: var(--gold2); text-shadow: var(--glow-gold); }
+
+  /* ── DIVISOR ── */
+  .rule-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* ── TEXTO ── */
+  p { margin-bottom: 14px; color: var(--text); }
+  strong { color: var(--white); }
+
+  /* ── LISTA ── */
+  .rule-list { list-style: none; padding: 0; }
+  .rule-list li {
+    padding: 10px 0 10px 28px;
+    border-bottom: 1px solid var(--bg3);
+    position: relative; color: var(--text);
+  }
+  .rule-list li::before {
+    content: '→'; position: absolute; left: 0;
+    color: var(--gold); font-weight: 700;
+  }
+  .rule-list li:last-child { border-bottom: none; }
+
+  /* ── CARDS ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .card:hover { border-color: var(--gold); box-shadow: var(--glow-gold); }
+  .card-icon { font-size: 26px; margin-bottom: 8px; }
+  .card-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--white); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 4px;
+  }
+  .card-lane {
+    font-size: 10px; letter-spacing: 0.15em;
+    text-transform: uppercase; margin-bottom: 8px;
+    color: var(--text2);
+  }
+  .card-lane.lane-1 { color: #42A5F5; }
+  .card-lane.lane-2 { color: var(--gold2); }
+  .card-lane.lane-3 { color: var(--crimson2); }
+  .card-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+  /* ── TABLA ── */
+  .bills-table { width: 100%; border-collapse: collapse; }
+  .bills-table th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--gold);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px; text-align: left;
+  }
+  .bills-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--bg3);
+    color: var(--text);
+  }
+  .bills-table tr:last-child td { border-bottom: none; }
+  .bills-table td:first-child {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; color: var(--gold2);
+    text-shadow: var(--glow-gold);
+  }
+  .bills-table .total-row td {
+    color: var(--white); font-weight: 700;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  /* ── HIGHLIGHT ── */
+  .highlight {
+    background: var(--bg2);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px; margin: 20px 0;
+  }
+  .highlight p { margin: 0; font-size: 13px; }
+  .highlight.red   { border-left-color: var(--crimson); }
+  .highlight.blue  { border-left-color: #42A5F5; }
+  .highlight.warn  { border-left-color: var(--gold2); }
+  .highlight .hl-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px; letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--gold); margin-bottom: 6px;
+  }
+  .highlight.red .hl-title   { color: var(--crimson2); }
+  .highlight.blue .hl-title  { color: #42A5F5; }
+  .highlight.warn .hl-title  { color: var(--gold2); }
+
+  /* ── FORMULA ── */
+  .formula {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 22px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px; letter-spacing: 0.04em;
+    color: var(--gold2); margin: 18px 0;
+    text-align: center;
+    text-shadow: var(--glow-gold);
+  }
+  .formula span {
+    color: var(--text2); font-size: 12px;
+    display: block; margin-top: 5px;
+    text-shadow: none; letter-spacing: 0.02em;
+  }
+
+  /* ── TOC ── */
+  .toc { list-style: none; padding: 0; }
+  .toc li { border-bottom: 1px solid var(--bg3); }
+  .toc a {
+    color: var(--text2); text-decoration: none;
+    display: flex; justify-content: space-between;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px; letter-spacing: 0.03em;
+    padding: 8px 0;
+    transition: color 0.2s;
+  }
+  .toc a:hover { color: var(--gold); }
+  .toc .num { color: var(--border); }
+
+  /* ── TIPO DE CAMBIO ── */
+  .exchange-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-top: 14px;
+  }
+  .exchange-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .exchange-box h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--gold2);
+    text-shadow: var(--glow-gold); margin-bottom: 8px;
+  }
+  .exchange-box p { font-size: 13px; margin-bottom: 5px; }
+
+  /* ── STAGE STEPS ── */
+  .stage-row {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 12px 0 12px 16px;
+    border-left: 2px solid var(--crimson);
+    margin-bottom: 6px;
+  }
+  .stage-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px; color: var(--crimson);
+    text-shadow: var(--glow-crimson);
+    min-width: 28px; line-height: 1;
+  }
+  .stage-content h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--white); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 4px;
+  }
+  .stage-content p { font-size: 13px; color: var(--text2); margin: 0; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: #fff; color: #111; }
+    #ludus-tetris { display: none; }
+    .cover { background: #fff; }
+    .cover-title { color: #1a1a1a; text-shadow: none; }
+    .card { border: 1px solid #ccc; background: #f9f9f9; }
+    .highlight { background: #f5f5f5; }
+    .formula { background: #f0f0f0; color: #333; text-shadow: none; }
+    h2,h3,p,li { color: #222; }
+    .section-title { color: #111; }
+    .section-title span { color: #555; text-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="ludus-tetris"></canvas>
+<button class="theme-btn" id="toggle-btn" onclick="toggleTheme()">☀ claro</button>
+
+<!-- PORTADA -->
+<div class="cover">
+  <div class="cover-content">
+    <div class="cover-tagline">Juego de mesa · Zona Metropolitana de Guadalajara</div>
+    <div class="cover-title">METROPOLY</div>
+    <div class="cover-subtitle">Instructivo oficial de juego</div>
+    <div class="cover-rings">
+      <div class="ring blue"></div>
+      <div class="ring yellow"></div>
+      <div class="ring red"></div>
+    </div>
+    <p class="cover-desc">Un juego de estrategia económica para 2 a 9 jugadores ambientado en la Zona Metropolitana de Guadalajara. Compra propiedades, construye oficinas y torres, y acumula 100 de oro para ganar.</p>
+  </div>
+  <div class="cover-version">v1.0 — ZMG Edition</div>
+</div>
+
+<!-- CONTENIDO -->
+<div class="page">
+
+  <!-- ÍNDICE -->
+  <div class="section" id="indice">
+    <div class="section-label">Navegación</div>
+    <div class="section-title">Índice</div>
+    <ul class="toc">
+      <li><a href="#objetivo"><span>01 — Objetivo del juego</span><span class="num">→</span></a></li>
+      <li><a href="#componentes"><span>02 — Componentes</span><span class="num">→</span></a></li>
+      <li><a href="#tablero"><span>03 — El tablero</span><span class="num">→</span></a></li>
+      <li><a href="#inicio"><span>04 — Preparación e inicio</span><span class="num">→</span></a></li>
+      <li><a href="#turno"><span>05 — El turno</span><span class="num">→</span></a></li>
+      <li><a href="#carriles"><span>06 — Cambio de carril</span><span class="num">→</span></a></li>
+      <li><a href="#dados"><span>07 — Reglas de dados</span><span class="num">→</span></a></li>
+      <li><a href="#propiedades"><span>08 — Propiedades</span><span class="num">→</span></a></li>
+      <li><a href="#construccion"><span>09 — Oficinas y torres</span><span class="num">→</span></a></li>
+      <li><a href="#empresas"><span>10 — Empresas</span><span class="num">→</span></a></li>
+      <li><a href="#casillas"><span>11 — Tipos de casilla</span><span class="num">→</span></a></li>
+      <li><a href="#fortunas"><span>12 — Cartas de fortuna</span><span class="num">→</span></a></li>
+      <li><a href="#cambio"><span>13 — Casa de cambio y tipo de cambio</span><span class="num">→</span></a></li>
+      <li><a href="#casino"><span>14 — Casino</span><span class="num">→</span></a></li>
+      <li><a href="#carcel"><span>15 — Cárcel y hospital</span><span class="num">→</span></a></li>
+      <li><a href="#banco"><span>16 — El jugador banco</span><span class="num">→</span></a></li>
+      <li><a href="#bancarrota"><span>17 — Bancarrota y fin del juego</span><span class="num">→</span></a></li>
+    </ul>
+  </div>
+
+  <hr class="rule-divider">
+
+  <!-- 01 -->
+  <div class="section" id="objetivo">
+    <div class="section-label">01</div>
+    <div class="section-title">Objetivo del <span>juego</span></div>
+    <p>El objetivo de Metropoly es acumular <strong>100 monedas de oro (◈)</strong>. El primer jugador en alcanzar esta cantidad gana de inmediato.</p>
+    <p>El juego maneja dos tipos de moneda:</p>
+    <ul class="rule-list">
+      <li><strong>Dinero ($)</strong> — la moneda cotidiana. Se usa para comprar propiedades, pagar rentas y realizar todas las transacciones del juego.</li>
+      <li><strong>Oro (◈)</strong> — la moneda de victoria. Se obtiene en la Casa de Cambio o por ciertos efectos de cartas. No puede usarse directamente para pagar rentas.</li>
+    </ul>
+  </div>
+
+  <!-- 02 -->
+  <div class="section" id="componentes">
+    <div class="section-label">02</div>
+    <div class="section-title"><span>Componentes</span></div>
+    <ul class="rule-list">
+      <li>1 tablero con 3 carriles concéntricos (azul exterior, amarillo medio, rojo interior)</li>
+      <li>Tarjetas de propiedad para cada casilla del tablero</li>
+      <li>3 barajas de cartas de fortuna (una por carril)</li>
+      <li>3 dados de 6 caras + 1 dado de 4 caras (para el banco)</li>
+      <li>Fichas de jugador (hasta 8 normales + 1 de banco)</li>
+      <li>Billetes de dinero y fichas de oro</li>
+      <li>Piezas de oficina (equivalente a casas) y torres (equivalente a hoteles)</li>
+    </ul>
+    <br>
+    <table class="bills-table">
+      <thead>
+        <tr><th>Denominación</th><th>Cantidad</th><th>Subtotal</th><th>Acumulado</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>5M</td><td>2 billetes</td><td>10M</td><td>10M</td></tr>
+        <tr><td>2M</td><td>4 billetes</td><td>8M</td><td>18M</td></tr>
+        <tr><td>1M</td><td>5 billetes</td><td>5M</td><td>23M</td></tr>
+        <tr><td>500K</td><td>2 billetes</td><td>1M</td><td>24M</td></tr>
+        <tr><td>200K</td><td>2 billetes</td><td>400K</td><td>24.4M</td></tr>
+        <tr><td>100K</td><td>3 billetes</td><td>300K</td><td>24.7M</td></tr>
+        <tr><td>50K</td><td>3 billetes</td><td>150K</td><td>24.85M</td></tr>
+        <tr><td>20K</td><td>5 billetes</td><td>100K</td><td>24.95M</td></tr>
+        <tr><td>10K</td><td>5 billetes</td><td>50K</td><td>25M</td></tr>
+        <tr class="total-row"><td colspan="2"><strong>TOTAL POR JUGADOR</strong></td><td colspan="2"><strong>$25,000,000</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 03 -->
+  <div class="section" id="tablero">
+    <div class="section-label">03</div>
+    <div class="section-title">El <span>tablero</span></div>
+    <p>El tablero tiene <strong>3 carriles concéntricos</strong>. Todos los jugadores comienzan en el carril exterior.</p>
+    <ul class="rule-list">
+      <li><strong>Carril Azul (exterior) — 40 casillas.</strong> Propiedades residenciales y comerciales de la ZMG, trenes, aeropuertos, empresas y fortunas.</li>
+      <li><strong>Carril Amarillo (medio) — 36 casillas.</strong> Plazas, mercados, taxis, casinos y empresas.</li>
+      <li><strong>Carril Rojo (interior) — 32 casillas.</strong> Cartas de fortuna, casas de cambio, días de paga y empresas.</li>
+    </ul>
+    <div class="highlight blue">
+      <div class="hl-title">Esquinas</div>
+      <p>Las 4 esquinas de cada carril son siempre empresas. No se colorean con grupos de propiedad y tienen reglas propias.</p>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="section" id="inicio">
+    <div class="section-label">04</div>
+    <div class="section-title">Preparación <span>e inicio</span></div>
+    <ul class="rule-list">
+      <li>Cada jugador recibe <strong>$25,000,000</strong> en billetes según la tabla anterior.</li>
+      <li>Todas las fichas se colocan en la <strong>Caseta de Zapotlanejo</strong> (salida, carril azul).</li>
+      <li>Se barajan las tres barajas de fortuna por separado y se colocan boca abajo en sus zonas.</li>
+      <li>El jugador que saque el número más alto con un dado empieza. El turno avanza en sentido de las manecillas del reloj.</li>
+      <li>Si se juega con banco, ese jugador se designa antes de repartir. El banco no recibe dinero inicial.</li>
+    </ul>
+  </div>
+
+  <!-- 05 -->
+  <div class="section" id="turno">
+    <div class="section-label">05</div>
+    <div class="section-title">El <span>turno</span></div>
+    <div class="stage-row">
+      <div class="stage-num">1</div>
+      <div class="stage-content"><h4>Tirar los dados</h4><p>Se tiran los 3 dados y se avanza la suma en el carril actual.</p></div>
+    </div>
+    <div class="stage-row">
+      <div class="stage-num">2</div>
+      <div class="stage-content"><h4>Ejecutar el efecto</h4><p>Pagar renta, comprar, robar fortuna, entrar al casino, etc.</p></div>
+    </div>
+    <div class="stage-row">
+      <div class="stage-num">3</div>
+      <div class="stage-content"><h4>Acciones opcionales</h4><p>Construir oficinas o torres, hipotecar, deshipotecar, hacer tratos.</p></div>
+    </div>
+    <div class="highlight">
+      <div class="hl-title">Caseta de Zapotlanejo — Salida</div>
+      <p>Al pasar recibes el <strong>20% del salario base acordado</strong>. Si la Caseta tiene dueño, ese monto va a sus manos — pero solo lo cobra cuando él mismo pase por ella.</p>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div class="section" id="carriles">
+    <div class="section-label">06</div>
+    <div class="section-title">Cambio de <span>carril</span></div>
+    <p>Para cambiar de carril debes <strong>sacrificar uno de tus tres dados</strong>: tiras solo 2 dados en ese turno para moverte al carril adyacente.</p>
+    <ul class="rule-list">
+      <li>Si los <strong>2 dados caen iguales</strong> al cambiar de carril, tiras de nuevo (regla de dobles).</li>
+      <li>Solo se puede cambiar <strong>un carril por turno</strong> — no se puede pasar del azul al rojo en un movimiento.</li>
+      <li>Al cambiar de carril la posición se mantiene lo más cercana posible al punto de cruce.</li>
+      <li>El dueño de <strong>Caabsa Eagle</strong> puede impedir que un jugador cambie de carril, una vez por ronda.</li>
+    </ul>
+  </div>
+
+  <!-- 07 -->
+  <div class="section" id="dados">
+    <div class="section-label">07</div>
+    <div class="section-title">Reglas de <span>dados</span></div>
+    <ul class="rule-list">
+      <li><strong>Tiro normal:</strong> se tiran 3 dados y se avanza la suma.</li>
+      <li><strong>Doble (al menos 2 de 3 iguales):</strong> el turno termina normalmente. El dueño de la UdeG obtiene una tirada extra en su próximo turno.</li>
+      <li><strong>Triple (los 3 iguales):</strong> se vuelve a tirar inmediatamente <em>dos veces adicionales</em>. Si en alguno de esos tiros extras vuelven a salir los 3 iguales, el jugador va directo a la <strong>Cárcel</strong>.</li>
+    </ul>
+    <div class="highlight red">
+      <div class="hl-title">Triple doble — cárcel</div>
+      <p>Sacar triples es muy raro (1/36), de ahí las dos tiradas extra como recompensa. Pero si en alguna de esas tiradas vuelves a sacar triples, vas directo a Puente Grande sin pasar por la Caseta.</p>
+    </div>
+  </div>
+
+  <!-- 08 -->
+  <div class="section" id="propiedades">
+    <div class="section-label">08</div>
+    <div class="section-title"><span>Propiedades</span></div>
+    <p>Al caer en una propiedad sin dueño puedes comprarla al banco por su precio. Si no la compras, queda disponible para subasta.</p>
+    <ul class="rule-list">
+      <li><strong>Grupo completo:</strong> si tienes todas las propiedades del mismo color, la renta base se cobra al doble aunque no tengas mejoras.</li>
+      <li><strong>Hipoteca:</strong> puedes hipotecar al banco por la mitad del precio. No genera renta mientras está hipotecada. Para deshipotecar pagas el 110% del valor de hipoteca.</li>
+    </ul>
+    <div class="formula">
+      Renta = renta_base × 2<sup>n</sup>
+      <span>n = número de oficinas (0–4) o n=5 con torre · Ejemplo: renta_base 100K → torre = 3.2M</span>
+    </div>
+  </div>
+
+  <!-- 09 -->
+  <div class="section" id="construccion">
+    <div class="section-label">09</div>
+    <div class="section-title">Oficinas <span>y torres</span></div>
+    <ul class="rule-list">
+      <li>Máximo <strong>4 oficinas</strong> por propiedad; las 4 se intercambian por <strong>1 torre</strong>.</li>
+      <li><strong>Costo de cada oficina</strong> = precio de compra de la propiedad.</li>
+      <li>Solo se puede construir con el <strong>grupo de color completo</strong>.</li>
+      <li>La construcción debe ser <strong>uniforme</strong>: todas las propiedades del grupo deben tener al menos n oficinas antes de construir la n+1.</li>
+      <li>Vender mejoras: se recibe la mitad del costo de construcción por unidad.</li>
+    </ul>
+    <div class="highlight">
+      <div class="hl-title">Empresas — Oficinas y Torres</div>
+      <p>Las empresas admiten hasta <strong>4 oficinas y 2 torres</strong>. Progresión: 4 oficinas → 1ª torre → 4 oficinas más → 2ª torre. El cobro por dados se duplica por cada oficina.</p>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="empresas">
+    <div class="section-label">10</div>
+    <div class="section-title"><span>Empresas</span></div>
+    <p>Las empresas ocupan las 4 esquinas de cada carril. Precio fijo: <strong>$2,000,000</strong>. Su cobro se basa en los dados:</p>
+    <div class="formula">
+      Cobro = Dados × (10 × (2 + N° de empresas que posees))
+      <span>1 empresa: Dados×30 · 2: Dados×40 · 3: Dados×50 · 4: Dados×60 · Se duplica por cada oficina</span>
+    </div>
+    <p>Además del cobro, cada empresa tiene un <strong>efecto especial único</strong> activo mientras seas su dueño:</p>
+    <div class="cards">
+      <div class="card"><div class="card-icon">🚧</div><div class="card-name">Caseta de Zapotlanejo</div><div class="card-lane lane-1">Carril Azul · Salida</div><div class="card-desc">El dinero del salario al pasar va al dueño, pero solo se cobra cuando el dueño mismo pasa por ella.</div></div>
+      <div class="card"><div class="card-icon">🏥</div><div class="card-name">IMSS Jalisco</div><div class="card-lane lane-1">Carril Azul · Hospital</div><div class="card-desc">El dueño recibe todos los gastos médicos (300K por visita, 3 turnos). No paga gastos médicos propios.</div></div>
+      <div class="card"><div class="card-icon">💧</div><div class="card-name">SIAPA</div><div class="card-lane lane-1">Carril Azul · Cía. de Agua</div><div class="card-desc">Puede ver las cartas de fortuna de cualquier jugador y transferir fortunas entre jugadores.</div></div>
+      <div class="card"><div class="card-icon">📱</div><div class="card-name">Telcel Jalisco</div><div class="card-lane lane-1">Carril Azul · Telefonía</div><div class="card-desc">Puede ver la baraja de fortunas completa antes de robar una carta en cualquier momento.</div></div>
+      <div class="card"><div class="card-icon">📡</div><div class="card-name">Megacable Guadalajara</div><div class="card-lane lane-2">Carril Amarillo · Internet</div><div class="card-desc">Puede barajar y revolver las cartas de fortuna de cualquier carril en cualquier momento.</div></div>
+      <div class="card"><div class="card-icon">🎓</div><div class="card-name">UdeG</div><div class="card-lane lane-2">Carril Amarillo · Universidad</div><div class="card-desc">Cuando al menos 2 dados caigan igual en el turno de cualquier jugador, el dueño obtiene una tirada extra.</div></div>
+      <div class="card"><div class="card-icon">🏛️</div><div class="card-name">Palacio Municipal de GDL</div><div class="card-lane lane-2">Carril Amarillo · Recaudadora</div><div class="card-desc">Retiene el 10% de todas las transacciones monetarias que ocurran en el juego.</div></div>
+      <div class="card"><div class="card-icon">⚡</div><div class="card-name">CFE Jalisco</div><div class="card-lane lane-2">Carril Amarillo · Cía. de Luz</div><div class="card-desc">Recibe del banco el 40% del total apostado en cada partida de casino, haya participado o no.</div></div>
+      <div class="card"><div class="card-icon">⛓️</div><div class="card-name">Puente Grande</div><div class="card-lane lane-3">Carril Rojo · Cárcel</div><div class="card-desc">Recibe los pagos de cárcel de todos los presos y sus fortunas de nivel 3+. Si el dueño va a la cárcel, pierde la empresa.</div></div>
+      <div class="card"><div class="card-icon">🔥</div><div class="card-name">Gas Natural del Occidente</div><div class="card-lane lane-3">Carril Rojo · Cía. de Gas</div><div class="card-desc">Puede destruir dos casillas convirtiéndolas en lotes vacíos. Las casillas de otros carriles en esa posición no se ven afectadas.</div></div>
+      <div class="card"><div class="card-icon">🗑️</div><div class="card-name">Caabsa Eagle</div><div class="card-lane lane-3">Carril Rojo · Recolector</div><div class="card-desc">Puede impedir que un jugador cambie de carril durante su turno, una vez por ronda.</div></div>
+      <div class="card"><div class="card-icon">⛽</div><div class="card-name">Pemex López Mateos</div><div class="card-lane lane-3">Carril Rojo · Gasolinera</div><div class="card-desc">El dueño recibe la mitad de todo el dinero que mueven los taxis durante el juego.</div></div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="casillas">
+    <div class="section-label">11</div>
+    <div class="section-title">Tipos de <span>casilla</span></div>
+    <ul class="rule-list">
+      <li><strong>Propiedad (azul)</strong> — se compra y genera renta. Admite oficinas y torres con el grupo completo.</li>
+      <li><strong>Empresa (esquinas)</strong> — precio 2M, cobro por fórmula de dados, efecto especial único.</li>
+      <li><strong>Tren</strong> — renta base duplicada por cada tren adicional que poseas.</li>
+      <li><strong>Aeropuerto</strong> — renta fija por aeropuerto poseído.</li>
+      <li><strong>Negocio (amarillo)</strong> — tiene duración en turnos. Al expirar regresa al banco.</li>
+      <li><strong>Taxi (amarillo)</strong> — renta fija al caer. Si la Gasolinera tiene dueño, paga la mitad adicional a ese dueño.</li>
+      <li><strong>Casino (amarillo)</strong> — se juega una partida de póker. CFE recibe el 40% del bote.</li>
+      <li><strong>Fortuna</strong> — se roba una carta de la baraja del carril correspondiente.</li>
+      <li><strong>Casa de Cambio (rojo)</strong> — convierte dinero ↔ oro al tipo de cambio vigente.</li>
+      <li><strong>Día de Paga (rojo)</strong> — recibes un pago extra del banco al caer.</li>
+    </ul>
+  </div>
+
+  <!-- 12 -->
+  <div class="section" id="fortunas">
+    <div class="section-label">12</div>
+    <div class="section-title">Cartas de <span>fortuna</span></div>
+    <p>Tres barajas, una por carril. Cada carta tiene nivel del 1 (muy negativo) al 5 (muy positivo) y dos tipos:</p>
+    <ul class="rule-list">
+      <li><strong>Inmediata</strong> — el efecto ocurre al momento y la carta se descarta.</li>
+      <li><strong>Guardian</strong> — se guarda en la mano y se activa cuando el jugador elija.</li>
+    </ul>
+    <div class="highlight red">
+      <div class="hl-title">Al ir a la cárcel</div>
+      <p>Se pierden todas las cartas guardian de <strong>nivel 3 o superior</strong>. Van al dueño de Puente Grande, o se descartan si nadie lo posee.</p>
+    </div>
+    <div class="highlight">
+      <div class="hl-title">Carta de pistola (azul, nivel 4)</div>
+      <p>Guardian. Al caer en la misma casilla que otro jugador puedes asaltarlo: envíalo al hospital, roba su dinero, o roba una de sus propiedades.</p>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="section" id="cambio">
+    <div class="section-label">13</div>
+    <div class="section-title">Casa de Cambio y <span>tipo de cambio</span></div>
+    <p>Al caer en una Casa de Cambio puedes convertir dinero a oro o viceversa. Se elige al inicio si el tipo de cambio es <strong>fijo</strong> o <strong>variable</strong>.</p>
+    <div class="exchange-grid">
+      <div class="exchange-box">
+        <h4>Modo Fijo</h4>
+        <p><strong>$500K = 1 ◈</strong></p>
+        <p>Para ganar de inmediato necesitarías $50M en una sola visita.</p>
+        <p>Oro → dinero: <strong>1 ◈ = $450K</strong> (cuota del 10%).</p>
+      </div>
+      <div class="exchange-box">
+        <h4>Modo Variable</h4>
+        <p>Base: <strong>$500K por ◈</strong></p>
+        <p>−$10K por cada propiedad con dueño</p>
+        <p>+$50K por cada casilla de renta activa</p>
+        <p>Oro → dinero: <strong>$450K por ◈</strong> (cuota 10%).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="section" id="casino">
+    <div class="section-label">14</div>
+    <div class="section-title"><span>Casino</span></div>
+    <p>Al caer en una casilla de Casino se juega una partida de póker. Formato recomendado: <strong>Texas Hold'em</strong>.</p>
+    <ul class="rule-list">
+      <li>El dueño del casino participa automáticamente si lo desea.</li>
+      <li>El dueño de <strong>CFE Jalisco</strong> recibe el 40% del bote total, haya participado o no.</li>
+      <li>Las apuestas mínimas y ciegas se acuerdan entre los jugadores al momento.</li>
+    </ul>
+  </div>
+
+  <!-- 15 -->
+  <div class="section" id="carcel">
+    <div class="section-label">15</div>
+    <div class="section-title">Cárcel <span>y hospital</span></div>
+    <div class="highlight red">
+      <div class="hl-title">Cárcel — Puente Grande</div>
+      <p>Se va al caer en una fortuna que lo indique, por triple doble en los dados, u otras condiciones. Pagar <strong>$200K por turno</strong> o <strong>$500K para salir de inmediato</strong>. Estancia siempre de <strong>3 turnos</strong>. Al entrar se pierden todas las fortunas guardian de nivel 3+. Si el dueño de Puente Grande va a la cárcel, pierde la empresa.</p>
+    </div>
+    <div class="highlight warn">
+      <div class="hl-title">Hospital — IMSS Jalisco</div>
+      <p>Gastos médicos de <strong>$300K</strong>, estancia de <strong>3 turnos</strong>. No se puede sacar a alguien directamente — solo ciertos efectos de cartas rojas pueden mitigar la estancia. El dueño del IMSS recibe todos los pagos médicos y no paga los propios.</p>
+    </div>
+  </div>
+
+  <!-- 16 -->
+  <div class="section" id="banco">
+    <div class="section-label">16</div>
+    <div class="section-title">El jugador <span>banco</span></div>
+    <ul class="rule-list">
+      <li>Usa un <strong>dado de 4 caras</strong> para moverse.</li>
+      <li>Toda casilla en la que caiga le pertenece automáticamente (sin pagar).</li>
+      <li>Si alguien cae en una casilla del banco, se subasta entre todos los jugadores.</li>
+      <li>Puede participar en subastas con tope del <strong>doble del precio base</strong>.</li>
+      <li>No puede tirar dobles — no le aplica la regla de triple.</li>
+      <li>Puede ir a la cárcel y participar en todas las mecánicas normales.</li>
+      <li>Los jugadores pueden hacer tratos con el banco — espacio abierto a negociación y corrupción estratégica.</li>
+      <li><strong>El banco gana</strong> si lleva a todos los demás jugadores a la bancarrota.</li>
+    </ul>
+  </div>
+
+  <!-- 17 -->
+  <div class="section" id="bancarrota">
+    <div class="section-label">17</div>
+    <div class="section-title">Bancarrota <span>y fin del juego</span></div>
+    <p>Un jugador cae en bancarrota si no puede pagar una deuda y no tiene propiedades que hipotecar o vender. Al ocurrir, todas sus propiedades regresan al gobierno, sus cartas se descartan y sale del juego.</p>
+    <p><strong>El juego termina cuando:</strong></p>
+    <ul class="rule-list">
+      <li>Un jugador acumula <strong>100 ◈</strong> — gana de inmediato.</li>
+      <li>Solo queda un jugador (o el banco) en pie.</li>
+    </ul>
+    <div class="highlight">
+      <div class="hl-title">Estrategia general</div>
+      <p>Acumula propiedades en el azul para generar flujo estable de dinero. Usa el amarillo para el casino y los negocios de corto plazo. Llega al rojo para convertir dinero en oro en las Casas de Cambio y alcanzar los 100 ◈ antes que nadie.</p>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ── Toggle tema ───────────────────────────────────────
+let isLight = false;
+function toggleTheme() {
+  isLight = !isLight;
+  document.body.classList.toggle('light', isLight);
+  document.getElementById('toggle-btn').textContent = isLight ? '🌙 oscuro' : '☀ claro';
+  buildTetris();
+}
+
+// ── Fondo Tetris (paleta ludus) ───────────────────────
+const tetrisCanvas = document.getElementById('ludus-tetris');
+const tCtx = tetrisCanvas.getContext('2d');
+const TETROMINOS = {
+  I:[[1,1,1,1]], O:[[1,1],[1,1]], T:[[0,1,0],[1,1,1]],
+  S:[[0,1,1],[1,1,0]], Z:[[1,1,0],[0,1,1]],
+  J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]],
+};
+function buildTetris() {
+  const W = window.innerWidth, H = window.innerHeight;
+  tetrisCanvas.width = W; tetrisCanvas.height = H;
+  const CELL = 22;
+  const COLS = Math.ceil(W / CELL) + 2;
+  const ROWS = Math.ceil(H / CELL) + 2;
+  const board = Array.from({length:ROWS}, () => Array(COLS).fill(null));
+  const types = Object.keys(TETROMINOS);
+  for (let r = 0; r < ROWS; r++) {
+    let c = 0;
+    while (c < COLS) {
+      const type = types[Math.floor(Math.random() * types.length)];
+      const shape = TETROMINOS[type], sw = shape[0].length, sh = shape.length;
+      let fits = true;
+      for (let dr = 0; dr < sh && fits; dr++)
+        for (let dc = 0; dc < sw && fits; dc++)
+          if (shape[dr][dc] && (r+dr >= ROWS || c+dc >= COLS || board[r+dr][c+dc])) fits = false;
+      if (fits) {
+        for (let dr = 0; dr < sh; dr++) for (let dc = 0; dc < sw; dc++)
+          if (shape[dr][dc]) board[r+dr][c+dc] = type;
+        c += sw;
+      } else { if (!board[r][c]) board[r][c] = types[Math.floor(Math.random() * types.length)]; c++; }
+    }
+  }
+  tCtx.clearRect(0, 0, W, H);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const type = board[r][c]; if (!type) continue;
+    const LIGHT_COLORS = ['#40C8D8','#E8C000','#A030D0','#30B030','#D03030','#2060D0','#E07000'];
+    const color = isLight
+      ? LIGHT_COLORS[(r * 7 + c * 3) % LIGHT_COLORS.length]
+      : ((r + c) % 2 === 0 ? '#901828' : '#C8901A');
+    const x = c * CELL, y = r * CELL;
+    tCtx.globalAlpha = isLight ? 0.14 : 0.10;
+    tCtx.fillStyle = color; tCtx.fillRect(x+1, y+1, CELL-2, CELL-2);
+    tCtx.globalAlpha = isLight ? 0.28 : 0.20;
+    tCtx.strokeStyle = color; tCtx.lineWidth = 0.7;
+    tCtx.strokeRect(x+1, y+1, CELL-2, CELL-2);
+  }
+  tCtx.globalAlpha = 1;
+  // Spotlight
+  const sx = W * 0.5;
+  const sg = tCtx.createRadialGradient(sx, -H*0.1, 0, sx, H*0.5, H*0.85);
+  sg.addColorStop(0, 'rgba(240,200,80,.06)');
+  sg.addColorStop(0.4, 'rgba(220,160,40,.03)');
+  sg.addColorStop(1, 'rgba(200,120,20,0)');
+  tCtx.fillStyle = sg; tCtx.fillRect(0, 0, W, H);
+}
+window.addEventListener('resize', buildTetris);
+buildTetris();
+
+// ── Polvo dorado ──────────────────────────────────────
+const dustCanvas = document.createElement('canvas');
+dustCanvas.style.cssText = 'position:fixed;inset:0;z-index:1;pointer-events:none';
+document.body.insertBefore(dustCanvas, document.querySelector('.page') || document.querySelector('.cover'));
+const dCtx = dustCanvas.getContext('2d');
+let dustParticles = [];
+function makeDust() {
+  return {x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight,
+    vx:(Math.random()-.5)*.3, vy:-(0.1+Math.random()*.25),
+    r:.5+Math.random()*1.2, alpha:.15+Math.random()*.4,
+    flicker:Math.random()*Math.PI*2, flickerSpeed:.02+Math.random()*.04,
+    col:Math.random()<.6?'#E8A820':'#C8901A'};
+}
+function drawDust() {
+  const W = dustCanvas.width = window.innerWidth;
+  const H = dustCanvas.height = window.innerHeight;
+  dCtx.clearRect(0, 0, W, H);
+  if (isLight) { requestAnimationFrame(drawDust); return; }
+  if (dustParticles.length < 50) dustParticles.push(makeDust());
+  dustParticles = dustParticles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.flicker += p.flickerSpeed;
+    const fa = p.alpha * (0.6 + Math.sin(p.flicker) * 0.4);
+    dCtx.save(); dCtx.shadowColor = p.col; dCtx.shadowBlur = 4;
+    dCtx.beginPath(); dCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    dCtx.fillStyle = p.col; dCtx.globalAlpha = fa; dCtx.fill();
+    dCtx.restore();
+    if (p.y < -5) Object.assign(p, makeDust(), {y: H+5});
+    return true;
+  });
+  requestAnimationFrame(drawDust);
+}
+drawDust();
+</script>
+</body>
+</html>
